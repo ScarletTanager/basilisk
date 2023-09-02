@@ -1,0 +1,72 @@
+{
+    "classes": [
+        "Stilt Sandpiper",
+        "Curlew Sandpiper",
+        "Dunlin"
+    ],
+    "attributes": [
+        "Length",
+        "Wing",
+        "Bill",
+        "Tarsus",
+        "Tail"
+    ],
+    "data": [
+        {
+            "class": 0, 
+            "values": [215, 127, 40, 39, 49]
+        },
+        {
+            "class": 0, 
+            "values": [197, 125, 38, 36, 46]
+        },
+        {
+            "class": 0, 
+            "values": [225, 138, 42, 44, 50]
+        },
+        {
+            "class": 0, 
+            "values": [215, 136, 42, 42, 49]
+        },
+        {
+            "class": 0, 
+            "values": [181, 124, 37, 35, 45]
+        },
+        {
+            "class": 1, 
+            "values": [215, 132, 32, 30, 44]
+        },
+        {
+            "class": 1, 
+            "values": [185, 130, 34, 30, 45]
+        },
+        {
+            "class": 1, 
+            "values": [219, 134, 38, 32, 47]
+        },
+        {
+            "class": 1, 
+            "values": [220, 135, 39, 33, 48]
+        },
+        {
+            "class": 1, 
+            "values": [180, 125, 32, 27, 41]
+        },
+        {
+            "class": 2, 
+            "values": [165, 110, 28, 25, 50]
+        },
+        {
+            "class": 2, 
+            "values": [160, 105, 23, 22, 40]
+        },
+        {
+            "class": 2, 
+            "values": [200, 118, 33, 26, 50]
+        },
+        {
+            "class": 2, 
+            "values": [205, 110, 29, 24, 45]
+        }
+    ]
+}
