@@ -82,3 +82,10 @@ func (ds *DataSet) Classes() []string {
 func (ds *DataSet) Attributes() []string {
 	return ds.AttributeNames
 }
+
+type TestResults []TestResult
+
+type TestResult struct {
+	Record
+	Predicted int
+}
