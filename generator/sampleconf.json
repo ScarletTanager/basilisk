@@ -1,0 +1,191 @@
+{
+    "recordCount": 300,
+    "classes": {
+        "Piping Plover": [
+            {
+                "name": "length",
+                "lower": 170,
+                "upper": 190,
+                "allocationsByQuintile": [
+                    40,
+                    30,
+                    20,
+                    10,
+                    0
+                ]
+            },
+            {
+                "name": "wing",
+                "lower": 114,
+                "upper": 127,
+                "allocationsByQuintile": [
+                    20,
+                    20,
+                    20,
+                    20,
+                    20
+                ]
+            },
+            {
+                "name": "bill",
+                "lower": 12,
+                "upper": 14,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            },
+            {
+                "name": "tarsus",
+                "lower": 21,
+                "upper": 24,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            },
+            {
+                "name": "tail",
+                "lower": 48,
+                "upper": 57,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            }
+        ],
+        "White-headed Lapwing": [
+            {
+                "name": "length",
+                "lower": 280,
+                "upper": 320,
+                "allocationsByQuintile": [
+                    0,
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            },
+            {
+                "name": "wing",
+                "lower": 205,
+                "upper": 230,
+                "allocationsByQuintile": [
+                    20,
+                    20,
+                    20,
+                    20,
+                    20
+                ]
+            },
+            {
+                "name": "bill",
+                "lower": 30,
+                "upper": 35,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            },
+            {
+                "name": "tarsus",
+                "lower": 70,
+                "upper": 81,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            },
+            {
+                "name": "tail",
+                "lower": 90,
+                "upper": 105,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            }
+        ],
+        "Northern Lapwing": [
+            {
+                "name": "length",
+                "lower": 280,
+                "upper": 310,
+                "allocationsByQuintile": [
+                    40,
+                    30,
+                    20,
+                    10,
+                    0
+                ]
+            },
+            {
+                "name": "wing",
+                "lower": 215,
+                "upper": 237,
+                "allocationsByQuintile": [
+                    20,
+                    20,
+                    20,
+                    20,
+                    20
+                ]
+            },
+            {
+                "name": "bill",
+                "lower": 22,
+                "upper": 28,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            },
+            {
+                "name": "tarsus",
+                "lower": 43,
+                "upper": 50,
+                "allocationsByQuintile": [
+                    10,
+                    20,
+                    40,
+                    20,
+                    10
+                ]
+            },
+            {
+                "name": "tail",
+                "lower": 88,
+                "upper": 112,
+                "allocationsByQuintile": [
+                    30,
+                    30,
+                    40,
+                    0,
+                    0
+                ]
+            }
+        ]
+    }
+}
