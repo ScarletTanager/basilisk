@@ -1,19 +1,28 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
+	"strings"
 
 	"github.com/ScarletTanager/basilisk/classifiers"
 	"github.com/ScarletTanager/wyvern"
 )
 
 var (
-	configPath string
-	outputPath string
+	configPath   string
+	outputPath   string
+	outputFormat string
+)
+
+const (
+	format_JSON = "json"
+	format_CSV  = "csv"
 )
 
 type DataSetAttribute struct {
@@ -31,10 +40,19 @@ type DatasetConfig struct {
 func init() {
 	flag.StringVar(&configPath, "config", "config.json", "Path to configuration file in JSON")
 	flag.StringVar(&outputPath, "output", "output.json", "Path to output file")
+	flag.StringVar(&outputFormat, "format", format_JSON, "Output format (default is JSON); csv and json are supported, value is case-insensitive")
 }
 
 func main() {
 	flag.Parse()
+
+	outputFormat = strings.ToLower(outputFormat)
+	switch outputFormat {
+	case format_CSV:
+	case format_JSON:
+	default:
+		log.Fatal(fmt.Sprintf("%s is not a valid format.  Supported values are 'csv' and 'json', case-insensitive.", outputFormat))
+	}
 
 	if configPath == "" {
 		fmt.Fprintln(os.Stderr, "Must pass in path to config file with --config <path>")
@@ -108,16 +126,40 @@ func main() {
 		os.Exit(1)
 	}
 
-	datasetBytes, err := json.Marshal(dataset)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error marshaling dataset: %s\n", err)
-		os.Exit(1)
-	}
-
 	f, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening output file: %s\n", err)
 		os.Exit(1)
+	}
+
+	var datasetBytes []byte
+
+	switch outputFormat {
+	case format_JSON:
+		datasetBytes, err = json.Marshal(dataset)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error marshaling dataset: %s\n", err)
+			os.Exit(1)
+		}
+	case format_CSV:
+		var buf bytes.Buffer
+
+		// Write out the attribute names in the header
+		for _, attrName := range dataset.AttributeNames {
+			buf.WriteString(attrName + ",")
+		}
+
+		// Finish the header
+		buf.WriteString("class\n")
+
+		for _, rec := range dataset.Records {
+			for _, val := range rec.AttributeValues {
+				buf.WriteString(fmt.Sprintf("%f,", val))
+			}
+			buf.WriteString(fmt.Sprintf("%s\n", dataset.ClassNames[rec.Class]))
+		}
+
+		datasetBytes = buf.Bytes()
 	}
 
 	_, err = f.Write(datasetBytes)
