@@ -1,6 +1,7 @@
 package classifiers
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -57,6 +58,34 @@ func FromJSONFile(path string) (*DataSet, error) {
 	return FromJSON(jsonBytes)
 }
 
+// FromCSV builds a DataSet from CSV data.  Returns nil and an error if the data cannot be processed correctly.
+func FromCSV(dsCsv []byte) (*DataSet, error) {
+	return nil, nil
+}
+
+// MarshalCSV converts the DataSet to a byte slice containing the CSV representation (including a header
+// row listing the attributes and terminated by the column header for the class column).
+func (ds *DataSet) MarshalCSV() []byte {
+	var buf bytes.Buffer
+
+	// Write out the attribute names in the header
+	for _, attrName := range ds.AttributeNames {
+		buf.WriteString(attrName + ",")
+	}
+
+	// Finish the header
+	buf.WriteString("class\n")
+
+	for _, rec := range ds.Records {
+		for _, val := range rec.AttributeValues {
+			buf.WriteString(fmt.Sprintf("%f,", val))
+		}
+		buf.WriteString(fmt.Sprintf("%s\n", ds.ClassNames[rec.Class]))
+	}
+
+	return buf.Bytes()
+}
+
 func dataHasValidClasses(classes []string, data []Record) bool {
 	for _, r := range data {
 		if r.Class < 0 || r.Class >= len(classes) {
@@ -81,6 +110,25 @@ func (ds *DataSet) Classes() []string {
 
 func (ds *DataSet) Attributes() []string {
 	return ds.AttributeNames
+}
+
+// Split divides the dataset into separate datasets - the first is the training
+// data, the second is the test data
+// Passing nil for the config results in a random split with 75% of the records used for training.
+func (ds *DataSet) Split(cfg *DataSplitConfig) (*DataSet, *DataSet, error) {
+	return nil, nil, nil
+}
+
+type DataSplitMethod int
+
+const (
+	SplitRandom DataSplitMethod = iota
+	SplitSequential
+)
+
+type DataSplitConfig struct {
+	TrainingShare float64
+	Method        DataSplitMethod
 }
 
 type TestResults []TestResult

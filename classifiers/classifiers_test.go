@@ -223,6 +223,30 @@ var _ = Describe("Classifiers", func() {
 					Expect(ds.Attributes()).To(Equal(attrs))
 				})
 			})
+
+			Describe("MarshalCSV", func() {
+				var (
+					targetCSV []byte
+				)
+
+				BeforeEach(func() {
+					targetCSV = []byte(`chest,sleeve,neck,class
+1.000000,1.000000,1.000000,small
+1.000000,1.000000,2.000000,medium
+1.000000,2.000000,2.000000,large
+0.000000,0.500000,1.000000,small
+`)
+				})
+
+				It("Converts the dataset into a byte slice containing a valid CSV representation", func() {
+					csv := ds.MarshalCSV()
+					Expect(csv).To(Equal(targetCSV))
+				})
+			})
+
+			Describe("Split", func() {
+
+			})
 		})
 	})
 })

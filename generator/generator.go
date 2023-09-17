@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -142,24 +141,7 @@ func main() {
 			os.Exit(1)
 		}
 	case format_CSV:
-		var buf bytes.Buffer
-
-		// Write out the attribute names in the header
-		for _, attrName := range dataset.AttributeNames {
-			buf.WriteString(attrName + ",")
-		}
-
-		// Finish the header
-		buf.WriteString("class\n")
-
-		for _, rec := range dataset.Records {
-			for _, val := range rec.AttributeValues {
-				buf.WriteString(fmt.Sprintf("%f,", val))
-			}
-			buf.WriteString(fmt.Sprintf("%s\n", dataset.ClassNames[rec.Class]))
-		}
-
-		datasetBytes = buf.Bytes()
+		datasetBytes = dataset.MarshalCSV()
 	}
 
 	_, err = f.Write(datasetBytes)
