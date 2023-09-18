@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/ScarletTanager/wyvern"
 )
@@ -60,7 +62,77 @@ func FromJSONFile(path string) (*DataSet, error) {
 
 // FromCSV builds a DataSet from CSV data.  Returns nil and an error if the data cannot be processed correctly.
 func FromCSV(dsCsv []byte) (*DataSet, error) {
-	return nil, nil
+	// This is not memory-efficient, since it slurps in the entire slice of data.
+	// TODO: process this from a bytes.Reader or similar?
+	lines := bytes.Split(dsCsv, []byte("\n"))
+
+	headerFields := strings.Split(string(lines[0]), ",")
+	attributeNames := headerFields[:len(headerFields)-1]
+	attributeCount := len(attributeNames)
+
+	classNameMap := make(map[string]int)
+	classIdx := 0
+
+	records := make([]Record, 0)
+
+	for lineNo, line := range lines[1:] {
+		lineFields := bytes.Split(line, []byte(","))
+
+		// Check that we have the correct number of attributes
+		attributeValsRaw := lineFields[:len(lineFields)-1]
+		if len(attributeValsRaw) != attributeCount {
+			// Are we at the last line, and this is a blank line?
+			if lineNo == len(lines)-1 || len(line) == 0 {
+				break
+			}
+
+			// Add two to start at 1, header line is line 1 (so we skipped it)
+			return nil, fmt.Errorf("Invalid data at line %d", lineNo+2)
+		}
+
+		// Parse the attribute columns
+		attributeValues := make(wyvern.Vector[float64], attributeCount)
+		for attrIdx, attrValRaw := range attributeValsRaw {
+			if attrValue, conversionErr := strconv.ParseFloat(string(attrValRaw), 64); conversionErr != nil {
+				return nil, fmt.Errorf("Unable to parse attribute value %s, index %d, at line %d into float64", attrValRaw, attrIdx, lineNo+2)
+			} else {
+				attributeValues[attrIdx] = attrValue
+			}
+		}
+
+		rec := Record{
+			AttributeValues: attributeValues,
+		}
+
+		// If we have not seen the className before, add it to the map and bump the index
+		// for the next value
+		className := string(lineFields[len(lineFields)-1])
+		if _, ok := classNameMap[className]; !ok {
+			classNameMap[className] = classIdx
+			rec.Class = classIdx
+			classIdx++
+		}
+
+		records = append(records, rec)
+	}
+
+	// Convert the class names to a slice
+	classNames := make([]string, len(classNameMap))
+	for name, idx := range classNameMap {
+		classNames[idx] = name
+	}
+
+	return NewDataSet(classNames, attributeNames, records)
+}
+
+// FromCSVFile reads the CSV-formatted file and creates a DataSet from it.
+func FromCSVFile(path string) (*DataSet, error) {
+	csvBytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("When attempting to read CSV file: %w", err)
+	}
+
+	return FromCSV(csvBytes)
 }
 
 // MarshalCSV converts the DataSet to a byte slice containing the CSV representation (including a header

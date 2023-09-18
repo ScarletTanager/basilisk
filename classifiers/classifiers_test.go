@@ -2,6 +2,7 @@ package classifiers_test
 
 import (
 	"encoding/json"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -201,6 +202,103 @@ var _ = Describe("Classifiers", func() {
 				It("Returns nil and an error", func() {
 					dataSet, e := classifiers.FromJSONFile(path)
 					Expect(dataSet).To(BeNil())
+					Expect(e).To(HaveOccurred())
+				})
+			})
+		})
+
+		Describe("FromCSV", func() {
+			var (
+				sourceCSV []byte
+			)
+
+			BeforeEach(func() {
+				sourceDS, _ := classifiers.FromJSONFile("../datasets/shorebirds.json")
+				sourceCSV = sourceDS.MarshalCSV()
+			})
+
+			It("Creates a valid DataSet from the source CSV", func() {
+				ds, e := classifiers.FromCSV(sourceCSV)
+				Expect(e).NotTo(HaveOccurred())
+				Expect(ds).NotTo(BeNil())
+			})
+
+			When("The CSV contains records with non-float-valued attributes", func() {
+				BeforeEach(func() {
+					var err error
+					sourceCSV, err = os.ReadFile("../fixtures/shorebirds_badvalues.csv")
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("Returns nil and an error", func() {
+					ds, e := classifiers.FromCSV(sourceCSV)
+					Expect(e).To(HaveOccurred())
+					Expect(ds).To(BeNil())
+				})
+			})
+
+			When("The CSV contains records with the wrong number of attributes/columns", func() {
+				BeforeEach(func() {
+					var err error
+					sourceCSV, err = os.ReadFile("../fixtures/shorebirds_badattributes.csv")
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("Returns nil and an error", func() {
+					ds, e := classifiers.FromCSV(sourceCSV)
+					Expect(e).To(HaveOccurred())
+					Expect(ds).To(BeNil())
+				})
+			})
+		})
+
+		Describe("FromCSVFile", func() {
+			var (
+				path string
+			)
+
+			BeforeEach(func() {
+				path = "../datasets/shorebirds.csv"
+			})
+
+			It("Creates a valid DataSet from the file contents", func() {
+				ds, e := classifiers.FromCSVFile(path)
+				Expect(ds).NotTo(BeNil())
+				Expect(e).NotTo(HaveOccurred())
+			})
+
+			When("The file cannot be opened", func() {
+				BeforeEach(func() {
+					path = "../datasets/thisdoesnotexist.json"
+				})
+
+				It("Returns nil and an error", func() {
+					dataSet, e := classifiers.FromCSVFile(path)
+					Expect(dataSet).To(BeNil())
+					Expect(e).To(HaveOccurred())
+				})
+			})
+
+			When("The file contains records with the wrong number of columns/attributes", func() {
+				BeforeEach(func() {
+					path = "../fixtures/shorebirds_badattributes.csv"
+				})
+
+				It("Returns nil and an error", func() {
+					ds, e := classifiers.FromCSVFile(path)
+					Expect(ds).To(BeNil())
+					Expect(e).To(HaveOccurred())
+				})
+			})
+
+			When("The file contains records with bad values (cannot be parsed into float64)", func() {
+				BeforeEach(func() {
+					path = "../fixtures/shorebirds_badvalues.csv"
+				})
+
+				It("Returns nil and an error", func() {
+					ds, e := classifiers.FromCSVFile(path)
+					Expect(ds).To(BeNil())
 					Expect(e).To(HaveOccurred())
 				})
 			})
