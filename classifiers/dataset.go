@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/ScarletTanager/wyvern"
+	"golang.org/x/exp/slices"
 )
 
 type DataSet struct {
@@ -187,8 +190,49 @@ func (ds *DataSet) Attributes() []string {
 // Split divides the dataset into separate datasets - the first is the training
 // data, the second is the test data
 // Passing nil for the config results in a random split with 75% of the records used for training.
+// This does not modify the original DataSet.
 func (ds *DataSet) Split(cfg *DataSplitConfig) (*DataSet, *DataSet, error) {
-	return nil, nil, nil
+	randata := randomize(ds.Records)
+	splitPoint := int(float64(len(randata)) * .75)
+	trainingRecords := randata[:splitPoint]
+	testRecords := randata[splitPoint:]
+
+	training, _ := NewDataSet(ds.ClassNames, ds.AttributeNames, trainingRecords)
+	test, _ := NewDataSet(ds.ClassNames, ds.AttributeNames, testRecords)
+	return training, test, nil
+}
+
+func randomize(source []Record) []Record {
+	// We're assuming we don't overrun math.MaxInt - definitely not really a safe assumption
+	// for real usage.  This needs to be fixed/cleaned up.
+	maxIdx := int(math.Pow(float64(len(source)), 3))
+
+	randomizedSparse := make([]*Record, maxIdx+1)
+
+	// Generate and store the list of randomized record indices
+	sortKeys := make([]int, len(source))
+	for i, _ := range sortKeys {
+		// This is crappy and could bury us, but I don't feel like implementing wraparound logic
+		// right now (incrementing the random index by 1 until we either find a free slot or wrap
+		// around back to the beginning of the slice, then look for free slots from there)
+		for {
+			rdIdx := rand.Intn(maxIdx + 1)
+			if randomizedSparse[rdIdx] == nil {
+				randomizedSparse[rdIdx] = &(source[i])
+				sortKeys[i] = rdIdx
+				break
+			}
+		}
+	}
+
+	// Condense to get the result
+	randomized := make([]Record, len(source))
+	slices.Sort(sortKeys)
+	for i, k := range sortKeys {
+		randomized[i] = *(randomizedSparse[k])
+	}
+
+	return randomized
 }
 
 type DataSplitMethod int
