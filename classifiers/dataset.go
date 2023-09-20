@@ -15,6 +15,17 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+var (
+	maxRecordCount int
+)
+
+func init() {
+	// maxRecordCount holds the cube root of math.MaxInt.  DataSets containg more
+	// records than this have to be randomized in parts over multiple passes
+	// (similar to shuffling two or more decks of cards into a single fully shuffled deck).
+	maxRecordCount = int(math.Pow(float64(math.MaxInt), 1.0/3.0))
+}
+
 type DataSet struct {
 	ClassNames     []string `json:"classes"`
 	AttributeNames []string `json:"attributes"`
@@ -192,19 +203,52 @@ func (ds *DataSet) Attributes() []string {
 // Passing nil for the config results in a random split with 75% of the records used for training.
 // This does not modify the original DataSet.
 func (ds *DataSet) Split(cfg *DataSplitConfig) (*DataSet, *DataSet, error) {
-	randata := randomize(ds.Records)
-	splitPoint := int(float64(len(randata)) * .75)
-	trainingRecords := randata[:splitPoint]
-	testRecords := randata[splitPoint:]
+	shuffled := randomShuffle(ds.Records)
+	splitPoint := int(float64(len(shuffled)) * .75)
+	trainingRecords := shuffled[:splitPoint]
+	testRecords := shuffled[splitPoint:]
 
 	training, _ := NewDataSet(ds.ClassNames, ds.AttributeNames, trainingRecords)
 	test, _ := NewDataSet(ds.ClassNames, ds.AttributeNames, testRecords)
 	return training, test, nil
 }
 
-func randomize(source []Record) []Record {
-	// We're assuming we don't overrun math.MaxInt - definitely not really a safe assumption
-	// for real usage.  This needs to be fixed/cleaned up.
+func randomShuffle(source []Record) []Record {
+	var deck []Record
+
+	if len(source) > maxRecordCount {
+		deck = slices.Clone(source)
+		// They say a deck is randomized after seven shuffles...
+		for p := 0; p < 7; p++ {
+			// Split into subsets (cut the deck into smaller decks), shuffle, then merge
+			subdecks := make([][]Record, (len(deck)/maxRecordCount)+1)
+			for i, _ := range subdecks {
+				if i != len(subdecks)-1 {
+					subdecks[i] = shuffleDeck(slices.Clone(deck[i*maxRecordCount : (i+1)*maxRecordCount]))
+				} else {
+					subdecks[i] = shuffleDeck(slices.Clone(deck[i*maxRecordCount:]))
+				}
+			}
+
+			// range over all the subdecks but the last one
+			for i := range subdecks[:len(subdecks)-1] {
+				for j := range subdecks[i] {
+					deck[(len(deck)-1)-((i*maxRecordCount)+j)] = subdecks[i][j]
+				}
+			}
+
+			for j := range subdecks[len(subdecks)-1] {
+				deck[len(subdecks[len(subdecks)-1])-j] = subdecks[len(subdecks)-1][j]
+			}
+		}
+	} else {
+		deck = shuffleDeck(source)
+	}
+
+	return deck
+}
+
+func shuffleDeck(source []Record) []Record {
 	maxIdx := int(math.Pow(float64(len(source)), 3))
 
 	randomizedSparse := make([]*Record, maxIdx+1)
@@ -215,6 +259,10 @@ func randomize(source []Record) []Record {
 		// This is crappy and could bury us, but I don't feel like implementing wraparound logic
 		// right now (incrementing the random index by 1 until we either find a free slot or wrap
 		// around back to the beginning of the slice, then look for free slots from there)
+		// This could theoretically take n (or more) iterations to find one free slot,
+		// which is O(n^2)...or worse...over the set.  It's worse b/c there is no guarantee that
+		// we don't retry the same slot (we don't exclude a slot we've checked and found occupied
+		// from the random generation).  So...yeah, this needs to be fixed.
 		for {
 			rdIdx := rand.Intn(maxIdx + 1)
 			if randomizedSparse[rdIdx] == nil {
