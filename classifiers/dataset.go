@@ -24,6 +24,10 @@ func init() {
 	// records than this have to be randomized in parts over multiple passes
 	// (similar to shuffling two or more decks of cards into a single fully shuffled deck).
 	maxRecordCount = int(math.Pow(float64(math.MaxInt), 1.0/3.0))
+	// Make it an even number so we can use half of it
+	if maxRecordCount%2 != 0 {
+		maxRecordCount--
+	}
 }
 
 type DataSet struct {
@@ -217,28 +221,49 @@ func randomShuffle(source []Record) []Record {
 	var deck []Record
 
 	if len(source) > maxRecordCount {
+		// Make a copy, we're not modifying the original record set
 		deck = slices.Clone(source)
+		// Split into subsets (cut the deck into smaller decks), shuffle, then merge (in reverse order)
+		var subdecks [][]Record
+		if len(deck)%maxRecordCount != 0 {
+			subdecks = make([][]Record, (len(deck)/maxRecordCount)+1)
+		} else {
+			subdecks = make([][]Record, (len(deck) / maxRecordCount))
+		}
+
 		// They say a deck is randomized after seven shuffles...
 		for p := 0; p < 7; p++ {
-			// Split into subsets (cut the deck into smaller decks), shuffle, then merge
-			subdecks := make([][]Record, (len(deck)/maxRecordCount)+1)
-			for i, _ := range subdecks {
-				if i != len(subdecks)-1 {
-					subdecks[i] = shuffleDeck(slices.Clone(deck[i*maxRecordCount : (i+1)*maxRecordCount]))
-				} else {
-					subdecks[i] = shuffleDeck(slices.Clone(deck[i*maxRecordCount:]))
+			if len(deck)%maxRecordCount == 0 {
+				// Deck length is an even multiple of maxRecordCount, so when we "cut the cards",
+				// we make the first (all but one) subdecks maxRecordCount in length, starting with index
+				// maxRecordCount/2.
+				for i := 0; i < len(subdecks)-1; i++ {
+					subdecks[i] = shuffleDeck(deck[(i*maxRecordCount)+(maxRecordCount/2) : ((i+1)*maxRecordCount)+(maxRecordCount/2)])
+				}
+
+				// The last deck is the last maxRecordCount/2 cards + the first maxRecordCount/2 cards
+				unsorted := append(deck[:maxRecordCount/2], deck[((len(subdecks)-1)*maxRecordCount)+(maxRecordCount/2):]...)
+				subdecks[len(subdecks)-1] = shuffleDeck(unsorted)
+			} else {
+				for i, _ := range subdecks {
+					if i != len(subdecks)-1 {
+						subdecks[i] = shuffleDeck(deck[i*maxRecordCount : (i+1)*maxRecordCount])
+					} else {
+						subdecks[i] = shuffleDeck(deck[i*maxRecordCount:])
+					}
 				}
 			}
 
-			// range over all the subdecks but the last one
-			for i := range subdecks[:len(subdecks)-1] {
+			// range over all the subdecks but the last one.  We reverse the order in the merge
+			// to make sure are not just recreating the subdecks with the same distributions.
+			for i := 0; i < len(subdecks)-1; i++ {
 				for j := range subdecks[i] {
 					deck[(len(deck)-1)-((i*maxRecordCount)+j)] = subdecks[i][j]
 				}
 			}
 
 			for j := range subdecks[len(subdecks)-1] {
-				deck[len(subdecks[len(subdecks)-1])-j] = subdecks[len(subdecks)-1][j]
+				deck[len(subdecks[len(subdecks)-1])-(j+1)] = subdecks[len(subdecks)-1][j]
 			}
 		}
 	} else {

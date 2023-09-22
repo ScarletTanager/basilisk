@@ -7,9 +7,10 @@ import (
 )
 
 type KNearestNeighborClassifier struct {
-	RawData      *classifiers.DataSet
-	TrainingData *classifiers.DataSet
-	TestingData  *classifiers.DataSet
+	NeighborCount int
+	RawData       *classifiers.DataSet
+	TrainingData  *classifiers.DataSet
+	TestingData   *classifiers.DataSet
 }
 
 func New() *KNearestNeighborClassifier {

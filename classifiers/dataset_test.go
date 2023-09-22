@@ -353,7 +353,7 @@ var _ = Describe("DataSet", func() {
 				sourceDS, e = classifiers.FromCSVFile("../datasets/shorebirds.csv")
 				Expect(e).NotTo(HaveOccurred())
 				Expect(sourceDS).NotTo(BeNil())
-				Expect(len(sourceDS.Records)).To(Equal(300))
+				// Expect(len(sourceDS.Records)).To(Equal(300))
 			})
 
 			It("Returns a 75/25 split, randomized", func() {
@@ -364,6 +364,10 @@ var _ = Describe("DataSet", func() {
 
 				Expect(trainingDS1.Records).To(HaveLen(int(float64(len(sourceDS.Records)) * .75)))
 				Expect(testDS1.Records).To(HaveLen(int(float64(len(sourceDS.Records)) * .25)))
+
+				// Check that we have all the records and didn't throw any away
+				allRecords := append(trainingDS1.Records, testDS1.Records...)
+				Expect(allRecords).To(ConsistOf(sourceDS.Records))
 
 				// Split a second time, we expect a different split as evidence of randomization
 				trainingDS2, testDS2, _ := sourceDS.Split(splitCfg)

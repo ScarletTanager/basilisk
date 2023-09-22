@@ -125,7 +125,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	f, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.Create(outputPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening output file: %s\n", err)
 		os.Exit(1)
