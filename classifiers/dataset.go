@@ -129,10 +129,12 @@ func FromCSV(dsCsv []byte) (*DataSet, error) {
 		// If we have not seen the className before, add it to the map and bump the index
 		// for the next value
 		className := string(lineFields[len(lineFields)-1])
-		if _, ok := classNameMap[className]; !ok {
+		if ci, ok := classNameMap[className]; !ok {
 			classNameMap[className] = classIdx
 			rec.Class = classIdx
 			classIdx++
+		} else {
+			rec.Class = ci
 		}
 
 		records = append(records, rec)
@@ -217,11 +219,15 @@ func (ds *DataSet) Split(cfg *DataSplitConfig) (*DataSet, *DataSet, error) {
 		trainingRecords, testRecords []Record
 	)
 
-	if cfg == nil || cfg.TrainingShare == 0.0 {
+	if cfg == nil {
 		trainingShare = DEFAULT_TRAINING_SHARE
 		method = SplitRandom
 	} else {
-		trainingShare = cfg.TrainingShare
+		if cfg.TrainingShare == 0.0 {
+			trainingShare = DEFAULT_TRAINING_SHARE
+		} else {
+			trainingShare = cfg.TrainingShare
+		}
 		method = cfg.Method
 	}
 
