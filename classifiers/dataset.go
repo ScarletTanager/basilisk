@@ -15,6 +15,10 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const (
+	DEFAULT_TRAINING_SHARE = .75
+)
+
 var (
 	maxRecordCount int
 )
@@ -207,10 +211,30 @@ func (ds *DataSet) Attributes() []string {
 // Passing nil for the config results in a random split with 75% of the records used for training.
 // This does not modify the original DataSet.
 func (ds *DataSet) Split(cfg *DataSplitConfig) (*DataSet, *DataSet, error) {
-	shuffled := randomShuffle(ds.Records)
-	splitPoint := int(float64(len(shuffled)) * .75)
-	trainingRecords := shuffled[:splitPoint]
-	testRecords := shuffled[splitPoint:]
+	var (
+		trainingShare                float64
+		method                       DataSplitMethod
+		trainingRecords, testRecords []Record
+	)
+
+	if cfg == nil || cfg.TrainingShare == 0.0 {
+		trainingShare = DEFAULT_TRAINING_SHARE
+		method = SplitRandom
+	} else {
+		trainingShare = cfg.TrainingShare
+		method = cfg.Method
+	}
+
+	splitPoint := int(float64(len(ds.Records)) * trainingShare)
+	switch method {
+	case SplitRandom:
+		shuffled := randomShuffle(ds.Records)
+		trainingRecords = shuffled[:splitPoint]
+		testRecords = shuffled[splitPoint:]
+	case SplitSequential:
+		trainingRecords = ds.Records[:splitPoint]
+		testRecords = ds.Records[splitPoint:]
+	}
 
 	training, _ := NewDataSet(ds.ClassNames, ds.AttributeNames, trainingRecords)
 	test, _ := NewDataSet(ds.ClassNames, ds.AttributeNames, testRecords)
@@ -318,11 +342,4 @@ const (
 type DataSplitConfig struct {
 	TrainingShare float64
 	Method        DataSplitMethod
-}
-
-type TestResults []TestResult
-
-type TestResult struct {
-	Record
-	Predicted int
 }

@@ -356,30 +356,62 @@ var _ = Describe("DataSet", func() {
 				// Expect(len(sourceDS.Records)).To(Equal(300))
 			})
 
-			It("Returns a 75/25 split, randomized", func() {
-				trainingDS1, testDS1, err := sourceDS.Split(splitCfg)
-				Expect(trainingDS1).NotTo(BeNil())
-				Expect(testDS1).NotTo(BeNil())
-				Expect(err).NotTo(HaveOccurred())
+			It("Defaults to a 75/25 split, randomized", func() {
+				testDataSetSplit(sourceDS, splitCfg)
+			})
 
-				Expect(trainingDS1.Records).To(HaveLen(int(float64(len(sourceDS.Records)) * .75)))
-				Expect(testDS1.Records).To(HaveLen(int(float64(len(sourceDS.Records)) * .25)))
+			When("A DataSplitConfig is specified", func() {
+				BeforeEach(func() {
+					splitCfg = &classifiers.DataSplitConfig{}
+				})
 
-				// Check that we have all the records and didn't throw any away
-				allRecords := append(trainingDS1.Records, testDS1.Records...)
-				Expect(allRecords).To(ConsistOf(sourceDS.Records))
+				When("Without explicitly setting any config fields", func() {
+					It("Uses the default 75/25 randomized split", func() {
+						testDataSetSplit(sourceDS, splitCfg)
+					})
+				})
 
-				// Split a second time, we expect a different split as evidence of randomization
-				trainingDS2, testDS2, _ := sourceDS.Split(splitCfg)
-				Expect(trainingDS2).NotTo(BeNil())
-				Expect(testDS2).NotTo(BeNil())
-				Expect(err).NotTo(HaveOccurred())
+				When("With a training share specified", func() {
+					BeforeEach(func() {
+						splitCfg.TrainingShare = .9
+					})
+					It("Allocates the specified percentage to training data and the rest to test data, randomized", func() {
+						testDataSetSplit(sourceDS, splitCfg)
+					})
+				})
 
-				Expect(trainingDS2.Records).To(HaveLen(int(float64(len(sourceDS.Records)) * .75)))
-				Expect(testDS2.Records).To(HaveLen(int(float64(len(sourceDS.Records)) * .25)))
+				When("With a split method specified", func() {
+					When("and the method is SplitRandom", func() {
+						BeforeEach(func() {
+							splitCfg.Method = classifiers.SplitRandom
+						})
 
-				Expect(trainingDS2.Records).NotTo(ConsistOf(trainingDS1.Records))
-				Expect(testDS2.Records).NotTo(ConsistOf(testDS1.Records))
+						It("Splits according to the specified method", func() {
+							testDataSetSplit(sourceDS, splitCfg)
+						})
+					})
+
+					When("and the method is SplitSequential", func() {
+						BeforeEach(func() {
+							splitCfg.Method = classifiers.SplitSequential
+						})
+
+						It("Splits according to the specified method", func() {
+							testDataSetSplit(sourceDS, splitCfg)
+						})
+					})
+				})
+
+				When("With both training share and method specified", func() {
+					BeforeEach(func() {
+						splitCfg.TrainingShare = .65
+						splitCfg.Method = classifiers.SplitSequential
+					})
+
+					It("Splits according to both the specified training share and method", func() {
+						testDataSetSplit(sourceDS, splitCfg)
+					})
+				})
 			})
 
 			// It("Does not modify the original DataSet", func() {
@@ -387,3 +419,51 @@ var _ = Describe("DataSet", func() {
 		})
 	})
 })
+
+func testDataSetSplit(ds *classifiers.DataSet, cfg *classifiers.DataSplitConfig) {
+	var (
+		trainingShare float64
+		method        classifiers.DataSplitMethod
+	)
+
+	if cfg == nil || cfg.TrainingShare == 0.0 {
+		trainingShare = classifiers.DEFAULT_TRAINING_SHARE
+		method = classifiers.SplitRandom
+	} else {
+		trainingShare = cfg.TrainingShare
+		method = cfg.Method
+	}
+
+	trainingRecordCount := int(float64(len(ds.Records)) * trainingShare)
+	testRecordCount := len(ds.Records) - trainingRecordCount
+
+	trainingDS1, testDS1, err := ds.Split(cfg)
+	Expect(trainingDS1).NotTo(BeNil())
+	Expect(testDS1).NotTo(BeNil())
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(trainingDS1.Records).To(HaveLen(trainingRecordCount))
+	Expect(testDS1.Records).To(HaveLen(testRecordCount))
+
+	// Check that we have all the records and didn't throw any away
+	allRecords := append(trainingDS1.Records, testDS1.Records...)
+	Expect(allRecords).To(ConsistOf(ds.Records))
+
+	if method == classifiers.SplitRandom {
+		// Split a second time, we expect a different split as evidence of randomization
+		trainingDS2, testDS2, _ := ds.Split(cfg)
+		Expect(trainingDS2).NotTo(BeNil())
+		Expect(testDS2).NotTo(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(trainingDS2.Records).To(HaveLen(trainingRecordCount))
+		Expect(testDS2.Records).To(HaveLen(testRecordCount))
+
+		Expect(trainingDS2.Records).NotTo(ConsistOf(trainingDS1.Records))
+		Expect(testDS2.Records).NotTo(ConsistOf(testDS1.Records))
+	} else {
+		// Sequential
+		Expect(trainingDS1.Records).To(ConsistOf(ds.Records[:trainingRecordCount]))
+		Expect(testDS1.Records).To(ConsistOf(ds.Records[trainingRecordCount:]))
+	}
+}
