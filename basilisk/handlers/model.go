@@ -12,32 +12,50 @@ type ModelConfiguration struct {
 	K int `json:"k,omitempty"`
 }
 
-type RunningModel struct {
-	Classifier *knn.KNearestNeighborClassifier
+type Model struct {
+	ID int `json:"id"`
+	ModelConfiguration
 }
 
-func (rm *RunningModel) Set(cl *knn.KNearestNeighborClassifier) error {
-	if rm.Classifier != nil {
-		return errors.New("current classifier already set")
+type RunningModels struct {
+	Classifiers []*knn.KNearestNeighborClassifier
+}
+
+type ModelsError struct {
+	Message string
+}
+
+func (rm *RunningModels) Add(cl *knn.KNearestNeighborClassifier) (int, error) {
+	if cl == nil {
+		return -1, errors.New("Cannot add a nil classifier")
 	}
 
-	rm.Classifier = cl
-	return nil
+	if rm.Classifiers == nil {
+		rm.Classifiers = make([]*knn.KNearestNeighborClassifier, 0)
+	}
+
+	rm.Classifiers = append(rm.Classifiers, cl)
+	return len(rm.Classifiers) - 1, nil
 }
 
 // CreateModelHandler returns an echo.HandlerFunc configured to set the currentModel with a valid request
-func CreateModelHandler(rm *RunningModel) echo.HandlerFunc {
+func CreateModelHandler(rm *RunningModels) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		var (
+			id  int
+			err error
+		)
+
 		mc := new(ModelConfiguration)
-		if err := c.Bind(mc); err != nil {
-			return err
+		if err = c.Bind(mc); err != nil {
+			return c.JSON(http.StatusBadRequest, &ModelsError{Message: "Cannot parse request body"})
 		}
 
 		classifier, _ := knn.New(mc.K)
-		if err := rm.Set(classifier); err != nil {
-			return c.String(http.StatusBadRequest, "Model exists already")
+		if id, err = rm.Add(classifier); err != nil {
+			return c.JSON(http.StatusInternalServerError, &ModelsError{Message: "Server error creating model, please retry"})
 		}
 
-		return c.String(http.StatusOK, "Model created")
+		return c.JSON(http.StatusOK, &Model{ID: id, ModelConfiguration: ModelConfiguration{mc.K}})
 	}
 }
