@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("Model", func() {
-	FDescribe("TestResults", func() {
+	Describe("TestResults", func() {
 		var (
 			results classifiers.TestResults
 		)

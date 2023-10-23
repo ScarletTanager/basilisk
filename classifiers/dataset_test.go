@@ -426,11 +426,15 @@ func testDataSetSplit(ds *classifiers.DataSet, cfg *classifiers.DataSplitConfig)
 		method        classifiers.DataSplitMethod
 	)
 
-	if cfg == nil || cfg.TrainingShare == 0.0 {
+	if cfg == nil {
 		trainingShare = classifiers.DEFAULT_TRAINING_SHARE
 		method = classifiers.SplitRandom
 	} else {
-		trainingShare = cfg.TrainingShare
+		if cfg.TrainingShare == 0.0 {
+			trainingShare = classifiers.DEFAULT_TRAINING_SHARE
+		} else {
+			trainingShare = cfg.TrainingShare
+		}
 		method = cfg.Method
 	}
 

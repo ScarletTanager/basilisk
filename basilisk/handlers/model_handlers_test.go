@@ -3,9 +3,12 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	. "github.com/onsi/ginkgo/v2"
@@ -17,7 +20,9 @@ import (
 
 var _ = Describe("Model", func() {
 	var (
-		c echo.Context
+		c    echo.Context
+		rm   *handlers.RunningModels
+		knnc *knn.KNearestNeighborClassifier
 
 		// Vars needed for setting up the request
 		request        *http.Request
@@ -31,6 +36,7 @@ var _ = Describe("Model", func() {
 
 	BeforeEach(func() {
 		recorder = httptest.NewRecorder()
+		rm = &handlers.RunningModels{}
 	})
 
 	JustBeforeEach(func() {
@@ -45,12 +51,7 @@ var _ = Describe("Model", func() {
 	})
 
 	Describe("CreateModelHandler", func() {
-		var (
-			rm *handlers.RunningModels
-		)
-
 		BeforeEach(func() {
-			rm = &handlers.RunningModels{}
 			method = http.MethodPost
 			target = "/models"
 		})
@@ -93,10 +94,6 @@ var _ = Describe("Model", func() {
 			})
 
 			When("Models exist", func() {
-				var (
-					knnc *knn.KNearestNeighborClassifier
-				)
-
 				BeforeEach(func() {
 					knnc, _ = knn.New(1)
 					_, err := rm.Add(knnc)
@@ -142,6 +139,105 @@ var _ = Describe("Model", func() {
 				h(c)
 				resp := recorder.Result()
 				Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+			})
+		})
+	})
+
+	Describe("TrainModelHandler", func() {
+		var (
+			id int
+		)
+
+		BeforeEach(func() {
+			method = http.MethodPut
+			knnc, _ = knn.New(1)
+			rm.Add(knnc)
+			Expect(rm.Classifiers).To(HaveLen(1))
+		})
+
+		JustBeforeEach(func() {
+			c.SetParamNames("id")
+			c.SetParamValues(strconv.Itoa(id))
+		})
+
+		When("The model exists", func() {
+			BeforeEach(func() {
+				id = 0
+				target = fmt.Sprintf("/models/%d/trainingdata", id)
+			})
+
+			When("The body is valid", func() {
+				BeforeEach(func() {
+					bodyBytes, _ = os.ReadFile("../../datasets/shorebirds.json")
+				})
+
+				When("The model is untrained", func() {
+					BeforeEach(func() {
+						Expect(rm.Classifiers[0].TrainingData).To(BeNil())
+					})
+
+					It("Returns an echo.HandlerFunc which trains the correct classifier", func() {
+						h := handlers.TrainModelHandler(rm)
+						h(c)
+						Expect(rm.Classifiers[0].TrainingData).NotTo(BeNil())
+					})
+
+					It("Returns an echo.HandlerFunc which returns a 200", func() {
+						h := handlers.TrainModelHandler(rm)
+						h(c)
+						resp := recorder.Result()
+						Expect(resp.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				XWhen("The model has previously been trained", func() {
+					JustBeforeEach(func() {
+						handlers.TrainModelHandler(rm)(c)
+					})
+
+					It("Retrains the model", func() {
+						orig := rm.Classifiers[0].TrainingData
+						handlers.TrainModelHandler(rm)(c)
+						Expect(rm.Classifiers[0].TrainingData).NotTo(Equal(orig))
+					})
+				})
+			})
+
+			When("The body is not valid JSON", func() {
+				BeforeEach(func() {
+					bodyBytes, _ = os.ReadFile("../../fixtures/shorebirds_bad.json")
+				})
+
+				It("Returns a 400", func() {
+					handlers.TrainModelHandler(rm)(c)
+					resp := recorder.Result()
+					Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+			})
+
+			When("The body is valid JSON but has data inconsistency issues", func() {
+				BeforeEach(func() {
+					bodyBytes, _ = os.ReadFile("../../fixtures/shorebirds_badattributes.json")
+				})
+
+				It("Returns a 400", func() {
+					handlers.TrainModelHandler(rm)(c)
+					resp := recorder.Result()
+					Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+			})
+		})
+
+		When("The referenced model does not exist", func() {
+			BeforeEach(func() {
+				id = 2
+				target = fmt.Sprintf("/models/%d/trainingdata", id)
+			})
+
+			It("Returns a 404", func() {
+				handlers.TrainModelHandler(rm)(c)
+				resp := recorder.Result()
+				Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
 	})

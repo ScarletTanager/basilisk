@@ -13,5 +13,6 @@ func main() {
 	e := echo.New()
 
 	e.POST("/models", handlers.CreateModelHandler(rm))
+	e.PUT("/models/:id/trainingdata", handlers.TrainModelHandler(rm))
 	e.Logger.Fatal(e.Start(":9323"))
 }
