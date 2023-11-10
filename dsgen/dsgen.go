@@ -2,6 +2,7 @@ package dsgen
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 
 	"github.com/ScarletTanager/basilisk/classifiers"
@@ -18,6 +19,15 @@ type DataSetAttribute struct {
 type DatasetConfig struct {
 	Classes     map[string][]DataSetAttribute `json:"classes"`
 	RecordCount int                           `json:"recordCount"`
+}
+
+type DatasetConfigError struct {
+	Err     error
+	Message string
+}
+
+func (dce *DatasetConfigError) Error() string {
+	return fmt.Sprintf("%s: %s", dce.Message, dce.Err.Error())
 }
 
 // ClassNames returns a slice containing the names of all classes defined
