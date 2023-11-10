@@ -15,13 +15,14 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/ScarletTanager/basilisk/basilisk/handlers"
+	"github.com/ScarletTanager/basilisk/basilisk/model"
 	"github.com/ScarletTanager/basilisk/classifiers/knn"
 )
 
 var _ = Describe("Model", func() {
 	var (
 		c    echo.Context
-		rm   *handlers.RunningModels
+		rm   *model.RunningModels
 		knnc *knn.KNearestNeighborClassifier
 
 		// Vars needed for setting up the request
@@ -36,7 +37,7 @@ var _ = Describe("Model", func() {
 
 	BeforeEach(func() {
 		recorder = httptest.NewRecorder()
-		rm = &handlers.RunningModels{}
+		rm = &model.RunningModels{}
 	})
 
 	JustBeforeEach(func() {
@@ -86,7 +87,7 @@ var _ = Describe("Model", func() {
 					h(c)
 					resp := recorder.Result()
 					body, _ := io.ReadAll(resp.Body)
-					m := &handlers.Model{}
+					m := &model.Model{}
 					Expect(json.Unmarshal(body, m)).NotTo(HaveOccurred())
 					Expect(m.ID).To(Equal(0))
 					Expect(m.K).To(Equal(1))
@@ -119,7 +120,7 @@ var _ = Describe("Model", func() {
 					h(c)
 					resp := recorder.Result()
 					body, _ := io.ReadAll(resp.Body)
-					m := &handlers.Model{}
+					m := &model.Model{}
 					Expect(json.Unmarshal(body, m)).NotTo(HaveOccurred())
 					Expect(m.ID).To(Equal(1))
 					Expect(m.K).To(Equal(1))
@@ -190,16 +191,46 @@ var _ = Describe("Model", func() {
 					})
 				})
 
-				XWhen("The model has previously been trained", func() {
-					JustBeforeEach(func() {
-						handlers.TrainModelHandler(rm)(c)
+				When("The model has previously been trained", func() {
+					Context("With the same data", func() {
+						JustBeforeEach(func() {
+							handlers.TrainModelHandler(rm)(c)
+						})
+
+						It("Retrains the model", func() {
+							orig := rm.Classifiers[0].TrainingData.Records
+
+							request = httptest.NewRequest(method, target, body)
+							request.Header.Add("Content-type", "application/json")
+							newCtx := echo.New().NewContext(request, &httptest.ResponseRecorder{})
+							newCtx.SetParamNames("id")
+							newCtx.SetParamValues(strconv.Itoa(id))
+
+							handlers.TrainModelHandler(rm)(newCtx)
+							Expect(rm.Classifiers[0].TrainingData.Records).NotTo(ConsistOf(orig))
+						})
 					})
 
-					It("Retrains the model", func() {
-						orig := rm.Classifiers[0].TrainingData
-						handlers.TrainModelHandler(rm)(c)
-						Expect(rm.Classifiers[0].TrainingData).NotTo(Equal(orig))
-					})
+					// Context("With different data", func() {
+					// 	JustBeforeEach(func() {
+					// 		handlers.TrainModelHandler(rm)(c)
+					// 	})
+
+					// 	It("Trains the model with the new data", func() {
+					// 		orig := rm.Classifiers[0].TrainingData.Records
+
+					// 		if bodyBytes != nil {
+					// 			body = bytes.NewReader(bodyBytes)
+					// 		} else {
+					// 			body = nil
+					// 		}
+					// 		request = httptest.NewRequest(method, target, body)
+					// 		request.Header.Add("Content-type", "application/json")
+					// 		c = echo.New().NewContext(request, recorder)
+					// 		handlers.TrainModelHandler(rm)(c)
+					// 		Expect(rm.Classifiers[0].TrainingData.Records).NotTo(ConsistOf(orig))
+					// 	})
+					// })
 				})
 			})
 

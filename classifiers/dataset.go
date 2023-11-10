@@ -45,6 +45,20 @@ type Record struct {
 	AttributeValues wyvern.Vector[float64] `json:"values"`
 }
 
+func (r Record) Equals(other Record) bool {
+	if r.Class == other.Class {
+		for i, v := range r.AttributeValues {
+			if other.AttributeValues[i] != v {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
 func NewDataSet(classes, attributes []string, data []Record) (*DataSet, error) {
 	if data != nil {
 		if !dataHasValidClasses(classes, data) {

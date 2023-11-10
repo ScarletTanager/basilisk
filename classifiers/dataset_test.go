@@ -464,6 +464,8 @@ func testDataSetSplit(ds *classifiers.DataSet, cfg *classifiers.DataSplitConfig)
 		Expect(testDS2.Records).To(HaveLen(testRecordCount))
 
 		Expect(trainingDS2.Records).NotTo(ConsistOf(trainingDS1.Records))
+		Expect(trainingDS2.Records).NotTo(ContainElements(trainingDS1.Records))
+		Expect(trainingDS1.Records).NotTo(ContainElements(trainingDS2.Records))
 		Expect(testDS2.Records).NotTo(ConsistOf(testDS1.Records))
 	} else {
 		// Sequential

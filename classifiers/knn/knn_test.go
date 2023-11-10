@@ -84,6 +84,44 @@ var _ = Describe("Knn", func() {
 		})
 	})
 
+	Describe("Retrain", func() {
+		var (
+			trainingDS1, testDS1 *classifiers.DataSet
+		)
+
+		BeforeEach(func() {
+			path = "../../datasets/shorebirds.csv"
+		})
+
+		JustBeforeEach(func() {
+			knnc.TrainFromCSVFile(path, cfg)
+			trainingDS1 = knnc.TrainingData
+			testDS1 = knnc.TestingData
+		})
+
+		When("The config is nil", func() {
+			BeforeEach(func() {
+				Expect(cfg).To(BeNil())
+			})
+
+			It("Replaces the existing training data with a different subset of the records", func() {
+				knnc.Retrain(cfg)
+				Expect(knnc.TrainingData.Records).To(HaveLen(len(trainingDS1.Records)))
+				Expect(knnc.TrainingData.Records).NotTo(ConsistOf(trainingDS1.Records))
+				Expect(knnc.TrainingData.Records).NotTo(ContainElements(trainingDS1.Records))
+				Expect(trainingDS1.Records).NotTo(ContainElements(knnc.TrainingData.Records))
+			})
+
+			It("Replaces the existing testing data with a different subset of the records", func() {
+				knnc.Retrain(cfg)
+				Expect(knnc.TestingData.Records).To(HaveLen(len(testDS1.Records)))
+				Expect(knnc.TestingData.Records).NotTo(ConsistOf(testDS1.Records))
+				Expect(knnc.TestingData.Records).NotTo(ContainElements(testDS1.Records))
+				Expect(testDS1.Records).NotTo(ContainElements(knnc.TestingData.Records))
+			})
+		})
+	})
+
 	Describe("Test", func() {
 		BeforeEach(func() {
 			path = "../../fixtures/students.csv"
