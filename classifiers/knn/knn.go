@@ -13,11 +13,12 @@ type KNearestNeighborClassifier struct {
 	RawData       *classifiers.DataSet
 	TrainingData  *classifiers.DataSet
 	TestingData   *classifiers.DataSet
+	Results       classifiers.TestResults
 	K             int
 }
 
 func New(k int) (*KNearestNeighborClassifier, error) {
-	if k == 0 {
+	if k <= 0 {
 		return nil, errors.New("Unable to create classifier, k must be greater than 0")
 	}
 	return &KNearestNeighborClassifier{K: k}, nil
@@ -34,6 +35,11 @@ func (knnc *KNearestNeighborClassifier) TrainFromCSVFile(path string, cfg *class
 		return fmt.Errorf("Error training from CSV file %s: %w", path, err)
 	}
 
+	return knnc.train(cfg)
+}
+
+func (knnc *KNearestNeighborClassifier) TrainFromDataset(ds *classifiers.DataSet, cfg *classifiers.DataSplitConfig) error {
+	knnc.RawData = ds
 	return knnc.train(cfg)
 }
 
@@ -64,8 +70,10 @@ func (knnc *KNearestNeighborClassifier) Retrain(cfg *classifiers.DataSplitConfig
 func (knnc *KNearestNeighborClassifier) Test() classifiers.TestResults {
 	results := make(classifiers.TestResults, len(knnc.TestingData.Records))
 	for i, testRecord := range knnc.TestingData.Records {
-		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records), len(knnc.TestingData.Records)/2)
+		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records), knnc.K)
 	}
+
+	knnc.Results = results
 	return results
 }
 

@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/ScarletTanager/basilisk/basilisk/model"
 	"github.com/ScarletTanager/basilisk/classifiers"
@@ -38,34 +37,33 @@ func CreateModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 func TrainModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
-			id  int
 			err error
 			raw classifiers.DataSet
 			ds  *classifiers.DataSet
 		)
 
-		if id, err = strconv.Atoi(c.Param("id")); err != nil {
-			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: fmt.Sprintf("%s is not a valid model id", c.Param("id"))})
-		}
-
-		if id < 0 || id > len(rm.Classifiers)-1 {
+		if knnc, ok := c.Get(ContextKeyModel).(classifiers.Classifier); !ok {
 			return c.JSON(http.StatusNotFound, &model.ModelsError{Message: "Model not found"})
+		} else {
+			if err = c.Bind(&raw); err != nil {
+				return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Cannot parse body"})
+			}
+
+			if ds, err = classifiers.NewDataSet(raw.ClassNames, raw.AttributeNames, raw.Records); err != nil {
+				return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: fmt.Sprintf("Invalid data: %s", err.Error())})
+			}
+
+			if err = knnc.TrainFromDataset(ds, nil); err != nil {
+				return c.JSON(http.StatusInternalServerError, &model.ModelsError{Message: "Error training model, please retry"})
+			}
 		}
 
-		if err = c.Bind(&raw); err != nil {
-			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Cannot parse body"})
-		}
+		return c.JSON(http.StatusOK, []byte(`{"Message": "Completed"}`))
+	}
+}
 
-		if ds, err = classifiers.NewDataSet(raw.ClassNames, raw.AttributeNames, raw.Records); err != nil {
-			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: fmt.Sprintf("Invalid data: %s", err.Error())})
-		}
-
-		rm.Classifiers[id].RawData = ds
-
-		if err = rm.Classifiers[id].Retrain(nil); err != nil {
-			return c.JSON(http.StatusInternalServerError, &model.ModelsError{Message: "Error training model, please retry"})
-		}
-
-		return c.JSON(http.StatusOK, &model.ModelsError{Message: "Model trained"})
+func TestModelHandler(rm *model.RunningModels) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return nil
 	}
 }

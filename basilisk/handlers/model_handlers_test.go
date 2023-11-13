@@ -3,12 +3,10 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 	. "github.com/onsi/ginkgo/v2"
@@ -145,26 +143,15 @@ var _ = Describe("Model", func() {
 	})
 
 	Describe("TrainModelHandler", func() {
-		var (
-			id int
-		)
-
 		BeforeEach(func() {
+			target = "/models/0/trainingdata"
 			method = http.MethodPut
 			knnc, _ = knn.New(1)
-			rm.Add(knnc)
-			Expect(rm.Classifiers).To(HaveLen(1))
 		})
 
-		JustBeforeEach(func() {
-			c.SetParamNames("id")
-			c.SetParamValues(strconv.Itoa(id))
-		})
-
-		When("The model exists", func() {
-			BeforeEach(func() {
-				id = 0
-				target = fmt.Sprintf("/models/%d/trainingdata", id)
+		When("The model has been set in the context", func() {
+			JustBeforeEach(func() {
+				c.Set(handlers.ContextKeyModel, knnc)
 			})
 
 			When("The body is valid", func() {
@@ -174,13 +161,13 @@ var _ = Describe("Model", func() {
 
 				When("The model is untrained", func() {
 					BeforeEach(func() {
-						Expect(rm.Classifiers[0].TrainingData).To(BeNil())
+						Expect(knnc.TrainingData).To(BeNil())
 					})
 
 					It("Returns an echo.HandlerFunc which trains the correct classifier", func() {
 						h := handlers.TrainModelHandler(rm)
 						h(c)
-						Expect(rm.Classifiers[0].TrainingData).NotTo(BeNil())
+						Expect(knnc.TrainingData).NotTo(BeNil())
 					})
 
 					It("Returns an echo.HandlerFunc which returns a 200", func() {
@@ -198,16 +185,15 @@ var _ = Describe("Model", func() {
 						})
 
 						It("Retrains the model", func() {
-							orig := rm.Classifiers[0].TrainingData.Records
+							orig := knnc.TrainingData.Records
 
 							request = httptest.NewRequest(method, target, body)
 							request.Header.Add("Content-type", "application/json")
 							newCtx := echo.New().NewContext(request, &httptest.ResponseRecorder{})
-							newCtx.SetParamNames("id")
-							newCtx.SetParamValues(strconv.Itoa(id))
+							newCtx.Set(handlers.ContextKeyModel, knnc)
 
 							handlers.TrainModelHandler(rm)(newCtx)
-							Expect(rm.Classifiers[0].TrainingData.Records).NotTo(ConsistOf(orig))
+							Expect(knnc.TrainingData.Records).NotTo(ConsistOf(orig))
 						})
 					})
 
@@ -259,12 +245,7 @@ var _ = Describe("Model", func() {
 			})
 		})
 
-		When("The referenced model does not exist", func() {
-			BeforeEach(func() {
-				id = 2
-				target = fmt.Sprintf("/models/%d/trainingdata", id)
-			})
-
+		When("The model has not been set in the context", func() {
 			It("Returns a 404", func() {
 				handlers.TrainModelHandler(rm)(c)
 				resp := recorder.Result()

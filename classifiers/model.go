@@ -4,6 +4,16 @@ const (
 	NO_PREDICTION = -1
 )
 
+// Classifier is the interface implemented by all classification models
+type Classifier interface {
+	TrainFromCSV([]byte, *DataSplitConfig) error
+	TrainFromCSVFile(string, *DataSplitConfig) error
+	TrainFromDataset(*DataSet, *DataSplitConfig) error
+	TrainFromJSON([]byte, *DataSplitConfig) error
+	TrainFromJSONFile(string, *DataSplitConfig) error
+	Retrain(*DataSplitConfig) error
+	Test() TestResults
+}
 type TestResults []TestResult
 
 type TestResult struct {
