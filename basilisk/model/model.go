@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 
+	"github.com/ScarletTanager/basilisk/classifiers"
 	"github.com/ScarletTanager/basilisk/classifiers/knn"
 )
 
@@ -16,11 +17,12 @@ type Model struct {
 }
 
 type RunningModels struct {
-	Classifiers []*knn.KNearestNeighborClassifier
+	Classifiers []classifiers.Classifier
 }
 
 type ModelsError struct {
-	Message string
+	Message string `json:"message"`
+	Error   error  `json:"error,omitempty"`
 }
 
 func (rm *RunningModels) Add(cl *knn.KNearestNeighborClassifier) (int, error) {
@@ -29,7 +31,7 @@ func (rm *RunningModels) Add(cl *knn.KNearestNeighborClassifier) (int, error) {
 	}
 
 	if rm.Classifiers == nil {
-		rm.Classifiers = make([]*knn.KNearestNeighborClassifier, 0)
+		rm.Classifiers = make([]classifiers.Classifier, 0)
 	}
 
 	rm.Classifiers = append(rm.Classifiers, cl)

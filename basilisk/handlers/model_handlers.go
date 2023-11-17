@@ -8,27 +8,78 @@ import (
 	"github.com/ScarletTanager/basilisk/classifiers"
 	"github.com/ScarletTanager/basilisk/classifiers/knn"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 )
+
+type ModelRenderer struct {
+	ID                  int         `json:"id"`
+	Type                string      `json:"type"`
+	Config              interface{} `json:"config,omitempty"`
+	Classes             []string    `json:"classes,omitempty"`
+	Attributes          []string    `json:"attributes,omitempty"`
+	TrainingRecordCount int         `json:"training_dataset_size"`
+	TestingRecordCount  int         `json:"testing_dataset_size"`
+}
+
+func ListModelsHandler(rm *model.RunningModels) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if rm == nil {
+			return c.JSON(http.StatusServiceUnavailable, []byte("Server not ready"))
+		}
+
+		body := make([]ModelRenderer, 0)
+		for id, m := range rm.Classifiers {
+			mr := ModelRenderer{
+				ID:     id,
+				Type:   m.Type(),
+				Config: m.Config(),
+			}
+
+			trd, ted := m.Data()
+			if trd != nil {
+				mr.Classes = trd.Classes()
+				mr.Attributes = trd.Attributes()
+				mr.TrainingRecordCount = len(trd.Records)
+			}
+
+			if ted != nil {
+				mr.TestingRecordCount = len(ted.Records)
+			}
+
+			body = append(body, mr)
+		}
+
+		return c.JSON(http.StatusOK, body)
+	}
+}
 
 // CreateModelHandler returns an echo.HandlerFunc configured to set the currentModel with a valid request
 func CreateModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
-			id  int
-			err error
+			createdModel *model.Model
 		)
 
 		mc := new(model.ModelConfiguration)
-		if err = c.Bind(mc); err != nil {
-			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Cannot parse request body"})
+		if err := c.Bind(mc); err != nil {
+			log.Errorf("Body binding error: %s", err.Error())
+			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Cannot parse request body", Error: err})
 		}
 
-		classifier, _ := knn.New(mc.K)
-		if id, err = rm.Add(classifier); err != nil {
-			return c.JSON(http.StatusInternalServerError, &model.ModelsError{Message: "Server error creating model, please retry"})
+		log.Infof("Model configuration: %v", mc)
+
+		if classifier, err := knn.New(mc.K); err != nil {
+			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Invalid model configuration", Error: err})
+		} else {
+			if id, err := rm.Add(classifier); err != nil {
+				log.Errorf("Model creation error: %s", err.Error())
+				return c.JSON(http.StatusInternalServerError, &model.ModelsError{Message: "Server error creating model, please retry", Error: err})
+			} else {
+				createdModel = &model.Model{ID: id, ModelConfiguration: *mc}
+			}
 		}
 
-		return c.JSON(http.StatusOK, &model.Model{ID: id, ModelConfiguration: *mc})
+		return c.JSON(http.StatusOK, createdModel)
 	}
 }
 
@@ -58,12 +109,25 @@ func TrainModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 			}
 		}
 
-		return c.JSON(http.StatusOK, []byte(`{"Message": "Completed"}`))
+		return c.JSON(http.StatusOK, `{"Message": "Completed"}`)
 	}
 }
 
 func TestModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return nil
+		var (
+			tra classifiers.TestResultsAnalysis
+		)
+
+		if knnc, ok := c.Get(ContextKeyModel).(classifiers.Classifier); !ok {
+			return c.JSON(http.StatusNotFound, &model.ModelsError{Message: "Model not found"})
+		} else {
+			if results, err := knnc.Test(); err != nil {
+				return c.JSON(http.StatusBadRequest, err)
+			} else {
+				tra = results.Analyze()
+			}
+		}
+		return c.JSON(http.StatusOK, tra)
 	}
 }

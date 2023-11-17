@@ -17,11 +17,27 @@ type KNearestNeighborClassifier struct {
 	K             int
 }
 
+func (knnc *KNearestNeighborClassifier) Config() interface{} {
+	return struct{ int }{knnc.K}
+}
+
+const (
+	ClassifierType_KNearestNeighbor string = "KNearestNeighbors Classifier"
+)
+
+func (knnc *KNearestNeighborClassifier) Type() string {
+	return ClassifierType_KNearestNeighbor
+}
+
 func New(k int) (*KNearestNeighborClassifier, error) {
 	if k <= 0 {
 		return nil, errors.New("Unable to create classifier, k must be greater than 0")
 	}
 	return &KNearestNeighborClassifier{K: k}, nil
+}
+
+func (knnc *KNearestNeighborClassifier) Data() (*classifiers.DataSet, *classifiers.DataSet) {
+	return knnc.TrainingData, knnc.TestingData
 }
 
 func (knnc *KNearestNeighborClassifier) TrainFromCSV(data []byte, cfg *classifiers.DataSplitConfig) error {
@@ -67,14 +83,17 @@ func (knnc *KNearestNeighborClassifier) Retrain(cfg *classifiers.DataSplitConfig
 	return knnc.train(cfg)
 }
 
-func (knnc *KNearestNeighborClassifier) Test() classifiers.TestResults {
+func (knnc *KNearestNeighborClassifier) Test() (classifiers.TestResults, error) {
+	if knnc.TrainingData == nil || knnc.TestingData == nil {
+		return nil, errors.New("Untestable model")
+	}
 	results := make(classifiers.TestResults, len(knnc.TestingData.Records))
 	for i, testRecord := range knnc.TestingData.Records {
 		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records), knnc.K)
 	}
 
 	knnc.Results = results
-	return results
+	return results, nil
 }
 
 type Neighbor struct {

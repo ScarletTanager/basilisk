@@ -15,12 +15,12 @@ const (
 	ContextKeyModel = "model"
 )
 
-// NewModelMiddlware returns a middleware function configured for:
+// RetrieveModelMiddlware returns a middleware function configured for:
 //   - Extracting model ID from URI
 //   - Checking if model exists, and:
 //   - Adding model to context if it exists, or
 //   - Returning a 404 if it does not
-func NewModelMiddleware(rm *model.RunningModels) echo.MiddlewareFunc {
+func RetrieveModelMiddleware(rm *model.RunningModels) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			var (
@@ -39,5 +39,18 @@ func NewModelMiddleware(rm *model.RunningModels) echo.MiddlewareFunc {
 			c.Set(ContextKeyModel, rm.Classifiers[id])
 			return next(c)
 		}
+	}
+}
+
+func CheckContentTypeJSONMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		headers := c.Request().Header
+		if contentTypeHeader := headers.Get(echo.HeaderContentType); contentTypeHeader == "" {
+			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Missing required header: Content-type"})
+		} else if contentTypeHeader != echo.MIMEApplicationJSON {
+			return c.JSON(http.StatusUnsupportedMediaType, &model.ModelsError{Message: fmt.Sprintf("Unsupported media type: must be %s, found %s", echo.MIMEApplicationJSON, contentTypeHeader)})
+		}
+
+		return next(c)
 	}
 }

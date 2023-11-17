@@ -12,7 +12,10 @@ type Classifier interface {
 	TrainFromJSON([]byte, *DataSplitConfig) error
 	TrainFromJSONFile(string, *DataSplitConfig) error
 	Retrain(*DataSplitConfig) error
-	Test() TestResults
+	Test() (TestResults, error)
+	Type() string
+	Data() (*DataSet, *DataSet)
+	Config() interface{}
 }
 type TestResults []TestResult
 
@@ -22,10 +25,10 @@ type TestResult struct {
 }
 
 type TestResultsAnalysis struct {
-	ResultCount    int
-	CorrectCount   int
-	IncorrectCount int
-	Accuracy       float64
+	ResultCount    int     `json:"results"`
+	CorrectCount   int     `json:"correct"`
+	IncorrectCount int     `json:"incorrect"`
+	Accuracy       float64 `json:"accuracy"`
 }
 
 func (trs TestResults) Analyze() TestResultsAnalysis {
