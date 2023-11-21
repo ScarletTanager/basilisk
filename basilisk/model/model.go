@@ -8,7 +8,8 @@ import (
 )
 
 type ModelConfiguration struct {
-	K int `json:"k,omitempty"`
+	K              int    `json:"k,omitempty"`
+	DistanceMethod string `json:"distance_method"`
 }
 
 type Model struct {

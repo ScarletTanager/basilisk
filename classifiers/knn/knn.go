@@ -9,16 +9,20 @@ import (
 )
 
 type KNearestNeighborClassifier struct {
-	NeighborCount int
-	RawData       *classifiers.DataSet
-	TrainingData  *classifiers.DataSet
-	TestingData   *classifiers.DataSet
-	Results       classifiers.TestResults
-	K             int
+	RawData          *classifiers.DataSet
+	TrainingData     *classifiers.DataSet
+	TestingData      *classifiers.DataSet
+	Results          classifiers.TestResults
+	K                int
+	DistanceMethod   string
+	distanceFunction classifiers.DistanceFunction
 }
 
 func (knnc *KNearestNeighborClassifier) Config() interface{} {
-	return struct{ int }{knnc.K}
+	return struct {
+		int
+		string
+	}{knnc.K, knnc.DistanceMethod}
 }
 
 const (
@@ -29,11 +33,24 @@ func (knnc *KNearestNeighborClassifier) Type() string {
 	return ClassifierType_KNearestNeighbor
 }
 
-func New(k int) (*KNearestNeighborClassifier, error) {
+func New(k int, distanceMethod string) (*KNearestNeighborClassifier, error) {
 	if k <= 0 {
 		return nil, errors.New("Unable to create classifier, k must be greater than 0")
 	}
-	return &KNearestNeighborClassifier{K: k}, nil
+
+	var distanceFunc classifiers.DistanceFunction
+
+	switch distanceMethod {
+	case classifiers.DistanceMethod_Euclidean:
+		distanceFunc = classifiers.EuclideanDistance
+	case classifiers.DistanceMethod_Manhattan:
+		distanceFunc = classifiers.ManhattanDistance
+	default:
+		distanceMethod = classifiers.DistanceMethod_Euclidean
+		distanceFunc = classifiers.EuclideanDistance
+	}
+
+	return &KNearestNeighborClassifier{K: k, DistanceMethod: distanceMethod, distanceFunction: distanceFunc}, nil
 }
 
 func (knnc *KNearestNeighborClassifier) Data() (*classifiers.DataSet, *classifiers.DataSet) {
@@ -89,7 +106,7 @@ func (knnc *KNearestNeighborClassifier) Test() (classifiers.TestResults, error) 
 	}
 	results := make(classifiers.TestResults, len(knnc.TestingData.Records))
 	for i, testRecord := range knnc.TestingData.Records {
-		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records), knnc.K)
+		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records, knnc.distanceFunction), knnc.K)
 	}
 
 	knnc.Results = results
@@ -135,12 +152,12 @@ func classify(orig classifiers.Record, neighbors []Neighbor, k int) classifiers.
 }
 
 // Take an individual record, order the records from ds by proximity, return the ordered list
-func computeNeighbors(orig classifiers.Record, comps []classifiers.Record) []Neighbor {
+func computeNeighbors(orig classifiers.Record, comps []classifiers.Record, distanceFunction classifiers.DistanceFunction) []Neighbor {
 	neighbors := make([]Neighbor, len(comps))
 	for i, r := range comps {
 		neighbors[i] = Neighbor{
 			Class:    r.Class,
-			Distance: orig.AttributeValues.Difference(r.AttributeValues).Magnitude(),
+			Distance: distanceFunction(orig.AttributeValues, r.AttributeValues),
 		}
 	}
 
