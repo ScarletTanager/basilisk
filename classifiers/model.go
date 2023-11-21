@@ -1,5 +1,7 @@
 package classifiers
 
+import "github.com/ScarletTanager/wyvern"
+
 const (
 	NO_PREDICTION = -1
 )
@@ -47,4 +49,33 @@ func (trs TestResults) Analyze() TestResultsAnalysis {
 	analysis.Accuracy = float64(analysis.CorrectCount) / float64(analysis.ResultCount)
 
 	return analysis
+}
+
+const (
+	DistanceMethod_Euclidean = "euclidean"
+	DistanceMethod_Manhattan = "manhattan"
+)
+
+type DistanceFunction func(wyvern.Vector[float64], wyvern.Vector[float64]) float64
+
+// For both distance functions, we're assuming that the vectors have the same
+// dimensionality (number of components).  Don't use these with vectors that
+// don't have the same dimensionality and expect things to "just work."
+
+// EuclideanDistance is (for now) just a convenience method to return
+// euclidean distance - we will probably change the implementation if/when
+// we support attribute types other than float64
+func EuclideanDistance(a, b wyvern.Vector[float64]) float64 {
+	return a.Difference(b).Magnitude()
+}
+
+// ManhattanDistance returns the Manhattan (city block) distance
+// between two points (represented as vectors).
+func ManhattanDistance(a, b wyvern.Vector[float64]) float64 {
+	var distance float64
+	for _, component := range a.Difference(b) {
+		distance += component
+	}
+
+	return distance
 }

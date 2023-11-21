@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/ScarletTanager/basilisk/classifiers"
+	"github.com/ScarletTanager/wyvern"
 )
 
 var _ = Describe("Model", func() {
@@ -48,6 +49,50 @@ var _ = Describe("Model", func() {
 					Expect(analysis.IncorrectCount).To(Equal(3))
 					Expect(analysis.Accuracy).To(Equal(.75))
 				})
+			})
+		})
+	})
+
+	Describe("Distance computation", func() {
+		var (
+			a, b             wyvern.Vector[float64]
+			expectedDistance float64
+		)
+
+		BeforeEach(func() {
+			a = wyvern.Vector[float64]{
+				5.5, 12.0, 6, -18.3,
+			}
+
+			b = wyvern.Vector[float64]{
+				-3.2, 18.0, 5.5, -27.0,
+			}
+		})
+
+		JustBeforeEach(func() {
+			Expect(a).To(HaveLen(len(b)))
+		})
+
+		Describe("EuclideanDistance", func() {
+			JustBeforeEach(func() {
+				expectedDistance = a.Difference(b).Magnitude()
+			})
+
+			It("Returns the magnitude of the vector difference", func() {
+				Expect(classifiers.EuclideanDistance(a, b)).To(Equal(expectedDistance))
+			})
+		})
+
+		Describe("ManhattanDistance", func() {
+			JustBeforeEach(func() {
+				expectedDistance = 0
+				for i, v := range a {
+					expectedDistance += (v - b[i])
+				}
+			})
+
+			It("Returns the city block distance between the two points", func() {
+				Expect(classifiers.ManhattanDistance(a, b)).To(Equal(expectedDistance))
 			})
 		})
 	})
