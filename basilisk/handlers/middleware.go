@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ScarletTanager/basilisk/basilisk/model"
 	"github.com/labstack/echo/v4"
@@ -42,15 +43,38 @@ func RetrieveModelMiddleware(rm *model.RunningModels) echo.MiddlewareFunc {
 	}
 }
 
-func CheckContentTypeJSONMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		headers := c.Request().Header
-		if contentTypeHeader := headers.Get(echo.HeaderContentType); contentTypeHeader == "" {
-			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Missing required header: Content-type"})
-		} else if contentTypeHeader != echo.MIMEApplicationJSON {
-			return c.JSON(http.StatusUnsupportedMediaType, &model.ModelsError{Message: fmt.Sprintf("Unsupported media type: must be %s, found %s", echo.MIMEApplicationJSON, contentTypeHeader)})
-		}
+type AllowedHeaders []string
 
-		return next(c)
+func (ah AllowedHeaders) String() string {
+	var b strings.Builder
+	for hi := 0; hi < (len(ah) - 1); hi++ {
+		b.WriteString(ah[hi] + " | ")
+	}
+	b.WriteString(ah[len(ah)-1])
+
+	return b.String()
+}
+
+func CheckContentTypeMiddleware(allowed AllowedHeaders) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// An empty slice means allow anything
+			if len(allowed) == 0 {
+				return next(c)
+			}
+
+			headers := c.Request().Header
+			if contentTypeHeader := headers.Get(echo.HeaderContentType); contentTypeHeader == "" {
+				return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Missing required header: Content-type"})
+			} else {
+				for _, allowedHeader := range allowed {
+					if contentTypeHeader == allowedHeader {
+						return next(c)
+					}
+				}
+
+				return c.JSON(http.StatusUnsupportedMediaType, &model.ModelsError{Message: fmt.Sprintf("Unsupported media type: must be one of %s, found %s", allowed.String(), contentTypeHeader)})
+			}
+		}
 	}
 }

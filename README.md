@@ -68,13 +68,13 @@ Some rules about the configuration:
 1. Class names must be unique within your dataset.
 1. The lower bound must be less than the upper bound.
 
-There is a sample configuration in this repository at `dsgen/dsgenerate/sampleconf.json`.
+There are sample configurations in this repository at `dsgen/dsgenerate/sampleconf.json` and `dsgen/dsgenerate/bairds_vs_whiterumped.json`.  The latter is an example of tuning quintile distributions to force the model to misclassify (which is an example of finding where your model is less reliable).
 
 #### Dataset format
 
 The generation code (which is the same whether you use `dsgenerate` or the REST API in the `basilisk` server) can output either JSON or CSV (`dsgenerate`) or JSON (`basilisk` server).  Examples of the two formats can be found at `datasets/shorebirds.json` and `datasets/shorebirds.csv`.  The model training API in the REST server only accepts datasets in JSON.
 
-The CSV should work with standard data toolkits (e.g. `scikit-learn`), but if not, please open an issue.
+The CSV should work with standard data toolkits (e.g. `scikit-learn`), but if not, please open an issue, _except_ that the CSV output by `dsgenerate` includes a header line, which you _may_ need to remove before slurping it up with other tools.  When working with the `basilisk` REST API, however, it is critical that this header line be present.  You may need to add it yourself to datasets downloaded elsewhere.
 
 ### Basilisk server
 
@@ -94,6 +94,10 @@ At present the REST server provides the following endpoints:
   - `GET` - lists the currently running models and their configurations
   - `POST` - creates a new model, which exists for the lifetime of the server.  There is no persistence layer in `basilisk`, so if you wanted to store a trained model over restarts, you'd need to add your own persistence layer.  The payload is pretty simple at present - `{"K": <int>, "distance_method": <string>}`.  `K` must be a positive integer (the only supported model right now is `KNearestNeighbors`), and `distance_method` must be one of `euclidean` or `manhattan`.  Euclidean distance is the magnitude of two difference of the two vectors, Manhattan (or "city block") distance is the sum of the differences of each vector component.  In two dimensions, this can be visualized as the distance along the rectilinear grid lines, thus the "city block" moniker.
 - `/models/:id/data`
-  - `PUT` - trains the specified model.  The dataset to be used is passed as the JSON body, the server will (currently) do a randomized split, with 75% of the records being allocated as training data, and the other 25% being used as testing data.
+  - `PUT` - trains the specified model.  The dataset to be used is passed as the JSON or CSV body, the server will (currently) do a randomized split, with 75% of the records being allocated as training data, and the other 25% being used as testing data.  **IMPORTANT**: if you upload the data as CSV, you must set the `Content-type` header to `text/csv` _and if you are using curl be sure to use the --data-binary option to preserve line breaks_.
 - `models/:id/results`
   - `GET` - tests the specified model and returns the test results analysis
+
+#### Included datasets
+
+For convenience, I have included the classic [Iris dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set) as a CSV - it can be found at `datasets/iris.csv`.  I have also included a generated dataset (`datasets/b_vs_wr_data.json`) for classifying sandpipers (birds) as either Baird's or White-rumped sandpipers.  There is also a shorebirds dataset, but honestly, it's not that useful - there is too little overlap between dataset members, so it's pretty much impossible to get models to misclassifiy anything.  But it's there so that you can see what a generated dataset might look like in both JSON (`datasets/shorebirds.json`) and CSV (`datasets/shorebirds.csv`) format - 
