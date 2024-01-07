@@ -1,0 +1,129 @@
+{
+    "recordCount": 800,
+    "classes": {
+        "Bairds Sandpiper": [
+            {
+                "name": "length",
+                "lower": 140,
+                "upper": 170,
+                "allocationsByQuintile": [
+                    5.0,
+                    5.0,
+                    40.0,
+                    35.0,
+                    10.0
+                ]
+            },
+            {
+                "name": "wing",
+                "lower": 118,
+                "upper": 135,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            },
+            {
+                "name": "bill",
+                "lower": 20,
+                "upper": 26,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            },
+            {
+                "name": "tarsus",
+                "lower": 21,
+                "upper": 26,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            },
+            {
+                "name": "tail",
+                "lower": 45,
+                "upper": 53,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            }
+        ],
+        "White-rumped Sandpiper": [
+            {
+                "name": "length",
+                "lower": 150,
+                "upper": 180,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            },
+            {
+                "name": "wing",
+                "lower": 118,
+                "upper": 131,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            },
+            {
+                "name": "bill",
+                "lower": 21,
+                "upper": 26,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            },
+            {
+                "name": "tarsus",
+                "lower": 23,
+                "upper": 26,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            },
+            {
+                "name": "tail",
+                "lower": 46,
+                "upper": 53,
+                "allocationsByQuintile": [
+                    5.0,
+                    15.0,
+                    60.0,
+                    15.0,
+                    5.0
+                ]
+            }
+        ]
+    }
+}

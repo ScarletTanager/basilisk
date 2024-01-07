@@ -13,13 +13,14 @@ func main() {
 	rm := &model.RunningModels{}
 	e := echo.New()
 
-	e.POST("/models", handlers.CreateModelHandler(rm), handlers.CheckContentTypeJSONMiddleware)
+	e.POST("/models", handlers.CreateModelHandler(rm), handlers.CheckContentTypeMiddleware(handlers.AllowedHeaders{echo.MIMEApplicationJSON}))
 	e.GET("/models", handlers.ListModelsHandler(rm))
-	e.POST("/datasets", handlers.CreateDatasetHandler, handlers.CheckContentTypeJSONMiddleware)
+	e.POST("/datasets", handlers.CreateDatasetHandler, handlers.CheckContentTypeMiddleware(handlers.AllowedHeaders{echo.MIMEApplicationJSON}))
 
 	modelGroup := e.Group("/models/:id", handlers.RetrieveModelMiddleware(rm))
-	modelGroup.PUT("/data", handlers.TrainModelHandler(rm), handlers.CheckContentTypeJSONMiddleware)
+	modelGroup.PUT("/data", handlers.TrainModelHandler(rm), handlers.CheckContentTypeMiddleware(handlers.AllowedHeaders{echo.MIMEApplicationJSON, "text/csv"}))
 	modelGroup.GET("/results", handlers.TestModelHandler(rm))
+	modelGroup.GET("/results/details", handlers.TestResultsDetailsHandler(rm))
 
 	e.Logger.Fatal(e.Start(":9323"))
 }

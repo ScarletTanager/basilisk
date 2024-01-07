@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/ScarletTanager/basilisk/basilisk/model"
@@ -96,12 +97,25 @@ func TrainModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 		if knnc, ok := c.Get(ContextKeyModel).(classifiers.Classifier); !ok {
 			return c.JSON(http.StatusNotFound, &model.ModelsError{Message: "Model not found"})
 		} else {
-			if err = c.Bind(&raw); err != nil {
-				return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Cannot parse body"})
-			}
+			// Check what data format is being sent
+			switch c.Request().Header.Get(echo.HeaderContentType) {
+			case echo.MIMEApplicationJSON:
+				if err = c.Bind(&raw); err != nil {
+					return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Cannot parse body"})
+				}
 
-			if ds, err = classifiers.NewDataSet(raw.ClassNames, raw.AttributeNames, raw.Records); err != nil {
-				return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: fmt.Sprintf("Invalid data: %s", err.Error())})
+				if ds, err = classifiers.NewDataSet(raw.ClassNames, raw.AttributeNames, raw.Records); err != nil {
+					return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: fmt.Sprintf("Invalid data: %s", err.Error())})
+				}
+			case "text/csv":
+				bodyBytes, err := io.ReadAll(c.Request().Body)
+				if err != nil {
+					// Probably not really what we want here, but...whatever
+					return c.JSON(http.StatusBadRequest, "Unable to read body")
+				}
+				if ds, err = classifiers.FromCSV(bodyBytes); err != nil || ds == nil {
+					return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: fmt.Sprintf("Invalid data: %s", err.Error())})
+				}
 			}
 
 			if err = knnc.TrainFromDataset(ds, nil); err != nil {
@@ -130,4 +144,24 @@ func TestModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusOK, tra)
 	}
+}
+
+func TestResultsDetailsHandler(rm *model.RunningModels) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var (
+			results classifiers.TestResults
+			err     error
+		)
+
+		if knnc, ok := c.Get(ContextKeyModel).(classifiers.Classifier); !ok {
+			return c.JSON(http.StatusNotFound, &model.ModelsError{Message: "Model not found"})
+		} else {
+			if results, err = knnc.Test(); err != nil {
+				return c.JSON(http.StatusBadRequest, err)
+			}
+		}
+
+		return c.JSON(http.StatusOK, results)
+	}
+
 }

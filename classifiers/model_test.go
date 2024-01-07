@@ -1,6 +1,8 @@
 package classifiers_test
 
 import (
+	"math"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -87,7 +89,7 @@ var _ = Describe("Model", func() {
 			JustBeforeEach(func() {
 				expectedDistance = 0
 				for i, v := range a {
-					expectedDistance += (v - b[i])
+					expectedDistance += math.Abs(v - b[i])
 				}
 			})
 

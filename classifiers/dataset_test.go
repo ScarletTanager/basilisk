@@ -209,11 +209,12 @@ var _ = Describe("DataSet", func() {
 	Describe("FromCSV", func() {
 		var (
 			sourceCSV []byte
+			err       error
 		)
 
 		BeforeEach(func() {
-			sourceDS, _ := classifiers.FromJSONFile("../datasets/shorebirds.json")
-			sourceCSV = sourceDS.MarshalCSV()
+			sourceCSV, err = os.ReadFile("../datasets/iris.csv")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("Creates a valid DataSet from the source CSV", func() {

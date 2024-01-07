@@ -9,20 +9,21 @@ import (
 )
 
 type KNearestNeighborClassifier struct {
-	RawData          *classifiers.DataSet
-	TrainingData     *classifiers.DataSet
-	TestingData      *classifiers.DataSet
-	Results          classifiers.TestResults
+	RawData       *classifiers.DataSet
+	TrainingData  *classifiers.DataSet
+	TestingData   *classifiers.DataSet
+	Results       classifiers.TestResults
+	Configuration KNearestNeighborClassifierConfig
+}
+
+type KNearestNeighborClassifierConfig struct {
 	K                int
 	DistanceMethod   string
 	distanceFunction classifiers.DistanceFunction
 }
 
 func (knnc *KNearestNeighborClassifier) Config() interface{} {
-	return struct {
-		int
-		string
-	}{knnc.K, knnc.DistanceMethod}
+	return knnc.Configuration
 }
 
 const (
@@ -50,7 +51,9 @@ func New(k int, distanceMethod string) (*KNearestNeighborClassifier, error) {
 		distanceFunc = classifiers.EuclideanDistance
 	}
 
-	return &KNearestNeighborClassifier{K: k, DistanceMethod: distanceMethod, distanceFunction: distanceFunc}, nil
+	return &KNearestNeighborClassifier{
+		Configuration: KNearestNeighborClassifierConfig{K: k, DistanceMethod: distanceMethod, distanceFunction: distanceFunc},
+	}, nil
 }
 
 func (knnc *KNearestNeighborClassifier) Data() (*classifiers.DataSet, *classifiers.DataSet) {
@@ -106,7 +109,7 @@ func (knnc *KNearestNeighborClassifier) Test() (classifiers.TestResults, error) 
 	}
 	results := make(classifiers.TestResults, len(knnc.TestingData.Records))
 	for i, testRecord := range knnc.TestingData.Records {
-		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records, knnc.distanceFunction), knnc.K)
+		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records, knnc.Configuration.distanceFunction), knnc.Configuration.K)
 	}
 
 	knnc.Results = results
@@ -144,9 +147,15 @@ func classify(orig classifiers.Record, neighbors []Neighbor, k int) classifiers.
 
 	for class, voteCount := range votes {
 		if voteCount > winningVoteCount {
+			winningVoteCount = voteCount
 			result.Predicted = class
 		}
 	}
+
+	result.Votes = votes[result.Predicted]
+
+	// Compute probability (certainty)
+	result.Probability = float64(result.Votes) / float64(len(votingNeighbors))
 
 	return result
 }

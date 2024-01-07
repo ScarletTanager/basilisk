@@ -1,6 +1,10 @@
 package classifiers
 
-import "github.com/ScarletTanager/wyvern"
+import (
+	"math"
+
+	"github.com/ScarletTanager/wyvern"
+)
 
 const (
 	NO_PREDICTION = -1
@@ -23,7 +27,10 @@ type TestResults []TestResult
 
 type TestResult struct {
 	Record
-	Predicted int
+	Predicted   int
+	Probability float64
+	// Votes is the number of votes (in a nearest neighbors model) for the predicated class
+	Votes int
 }
 
 type TestResultsAnalysis struct {
@@ -74,7 +81,8 @@ func EuclideanDistance(a, b wyvern.Vector[float64]) float64 {
 func ManhattanDistance(a, b wyvern.Vector[float64]) float64 {
 	var distance float64
 	for _, component := range a.Difference(b) {
-		distance += component
+		// Remember that we want the magnitude of the difference
+		distance += math.Abs(component)
 	}
 
 	return distance
