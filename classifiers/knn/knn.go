@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/ScarletTanager/basilisk/classifiers"
+	"github.com/ScarletTanager/basilisk/stats/probability"
 )
 
 type KNearestNeighborClassifier struct {
@@ -109,7 +110,10 @@ func (knnc *KNearestNeighborClassifier) Test() (classifiers.TestResults, error) 
 	}
 	results := make(classifiers.TestResults, len(knnc.TestingData.Records))
 	for i, testRecord := range knnc.TestingData.Records {
-		results[i] = classify(testRecord, computeNeighbors(testRecord, knnc.TrainingData.Records, knnc.Configuration.distanceFunction), knnc.Configuration.K)
+		results[i] = classify(testRecord,
+			computeNeighbors(testRecord, knnc.TrainingData.Records, knnc.Configuration.distanceFunction),
+			knnc.Configuration.K,
+			len(knnc.RawData.ClassNames))
 	}
 
 	knnc.Results = results
@@ -122,40 +126,36 @@ type Neighbor struct {
 }
 
 // classify assumes that neighbors has been sorted by distance already
-func classify(orig classifiers.Record, neighbors []Neighbor, k int) classifiers.TestResult {
-	var (
-		winningVoteCount int
-	)
-
+func classify(orig classifiers.Record, neighbors []Neighbor, k, classCount int) classifiers.TestResult {
 	result := classifiers.TestResult{
-		Record:    orig,
-		Predicted: classifiers.NO_PREDICTION,
+		Record: orig,
 	}
 
 	votingNeighbors := neighbors[:k]
-	// Using a map because we don't know how many classes are represented in the set overall,
-	// nor do we know which of those are represented in the training data
-	votes := make(map[int]int)
+	votes := make([]int, k)
 
-	for _, n := range votingNeighbors {
-		if _, ok := votes[n.Class]; !ok {
-			votes[n.Class] = 1
-		} else {
-			votes[n.Class] = votes[n.Class] + 1
+	// Collect the votes
+	for ni, neighbor := range votingNeighbors {
+		votes[ni] = neighbor.Class
+	}
+
+	// Create the probability mass function
+	pmf := probability.MassDiscrete(votes)
+
+	predicted := classifiers.NO_PREDICTION
+	predictedProbability := 0.0
+
+	// Determine the class
+	for i := 0; i < classCount; i++ {
+		probability := pmf(i)
+		if probability > predictedProbability {
+			predicted = i
+			predictedProbability = probability
 		}
 	}
 
-	for class, voteCount := range votes {
-		if voteCount > winningVoteCount {
-			winningVoteCount = voteCount
-			result.Predicted = class
-		}
-	}
-
-	result.Votes = votes[result.Predicted]
-
-	// Compute probability (certainty)
-	result.Probability = float64(result.Votes) / float64(len(votingNeighbors))
+	result.Predicted = predicted
+	result.Probability = predictedProbability
 
 	return result
 }
