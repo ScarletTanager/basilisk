@@ -23,6 +23,7 @@ type Classifier interface {
 	Data() (*DataSet, *DataSet)
 	Config() interface{}
 }
+
 type TestResults []TestResult
 
 type TestResult struct {

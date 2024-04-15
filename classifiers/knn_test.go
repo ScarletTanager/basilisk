@@ -1,15 +1,14 @@
-package knn_test
+package classifiers_test
 
 import (
 	"github.com/ScarletTanager/basilisk/classifiers"
-	"github.com/ScarletTanager/basilisk/classifiers/knn"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Knn", func() {
 	var (
-		knnc           *knn.KNearestNeighborClassifier
+		knnc           *classifiers.KNearestNeighborClassifier
 		path           string
 		cfg            *classifiers.DataSplitConfig
 		k              int
@@ -23,12 +22,12 @@ var _ = Describe("Knn", func() {
 	})
 
 	JustBeforeEach(func() {
-		knnc, _ = knn.New(k, distanceMethod)
+		knnc, _ = classifiers.NewKnn(k, distanceMethod)
 	})
 
 	Describe("New", func() {
 		It("Returns a new classifier", func() {
-			c, err := knn.New(k, distanceMethod)
+			c, err := classifiers.NewKnn(k, distanceMethod)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(c).NotTo(BeNil())
 		})
@@ -39,7 +38,7 @@ var _ = Describe("Knn", func() {
 			})
 
 			It("Returns nil and an error", func() {
-				c, err := knn.New(k, distanceMethod)
+				c, err := classifiers.NewKnn(k, distanceMethod)
 				Expect(err).To(HaveOccurred())
 				Expect(c).To(BeNil())
 			})
@@ -48,7 +47,7 @@ var _ = Describe("Knn", func() {
 
 	Describe("TrainFromJSONFile", func() {
 		BeforeEach(func() {
-			path = "../../datasets/shorebirds.json"
+			path = "../datasets/shorebirds.json"
 		})
 
 		It("Does not return an error", func() {
@@ -57,7 +56,7 @@ var _ = Describe("Knn", func() {
 
 		When("It cannot read the data file", func() {
 			BeforeEach(func() {
-				path = "../../datasets/thisdoesnotexist.json"
+				path = "../datasets/thisdoesnotexist.json"
 			})
 
 			It("Returns an error", func() {
@@ -68,7 +67,7 @@ var _ = Describe("Knn", func() {
 
 	Describe("TrainFromCSVFile", func() {
 		BeforeEach(func() {
-			path = "../../datasets/shorebirds.csv"
+			path = "../datasets/shorebirds.csv"
 		})
 
 		It("Does not return an error", func() {
@@ -77,7 +76,7 @@ var _ = Describe("Knn", func() {
 
 		When("It cannot read the data file", func() {
 			BeforeEach(func() {
-				path = "../../datasets/thisdoesnotexist.csv"
+				path = "../datasets/thisdoesnotexist.csv"
 			})
 
 			It("Returns an error", func() {
@@ -92,7 +91,7 @@ var _ = Describe("Knn", func() {
 		)
 
 		BeforeEach(func() {
-			path = "../../datasets/shorebirds.csv"
+			path = "../datasets/shorebirds.csv"
 		})
 
 		JustBeforeEach(func() {
@@ -126,7 +125,7 @@ var _ = Describe("Knn", func() {
 
 	Describe("Test", func() {
 		BeforeEach(func() {
-			path = "../../fixtures/students.csv"
+			path = "../fixtures/students.csv"
 			cfg = &classifiers.DataSplitConfig{
 				Method: classifiers.SplitSequential,
 			}

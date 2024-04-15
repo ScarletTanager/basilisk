@@ -14,14 +14,14 @@ import (
 
 	"github.com/ScarletTanager/basilisk/basilisk/handlers"
 	"github.com/ScarletTanager/basilisk/basilisk/model"
-	"github.com/ScarletTanager/basilisk/classifiers/knn"
+	"github.com/ScarletTanager/basilisk/classifiers"
 )
 
 var _ = Describe("Model", func() {
 	var (
 		c    echo.Context
 		rm   *model.RunningModels
-		knnc *knn.KNearestNeighborClassifier
+		knnc *classifiers.KNearestNeighborClassifier
 
 		// Vars needed for setting up the request
 		request        *http.Request
@@ -94,7 +94,7 @@ var _ = Describe("Model", func() {
 
 			When("Models exist", func() {
 				BeforeEach(func() {
-					knnc, _ = knn.New(1, "")
+					knnc, _ = classifiers.NewKnn(1, "")
 					_, err := rm.Add(knnc)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(rm.Classifiers).To(HaveLen(1))
@@ -146,7 +146,7 @@ var _ = Describe("Model", func() {
 		BeforeEach(func() {
 			target = "/models/0/trainingdata"
 			method = http.MethodPut
-			knnc, _ = knn.New(1, "")
+			knnc, _ = classifiers.NewKnn(1, "")
 		})
 
 		When("The model has been set in the context", func() {

@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/ScarletTanager/basilisk/classifiers"
-	"github.com/ScarletTanager/basilisk/classifiers/knn"
 )
 
 type ModelConfiguration struct {
@@ -26,7 +25,7 @@ type ModelsError struct {
 	Error   error  `json:"error,omitempty"`
 }
 
-func (rm *RunningModels) Add(cl *knn.KNearestNeighborClassifier) (int, error) {
+func (rm *RunningModels) Add(cl *classifiers.KNearestNeighborClassifier) (int, error) {
 	if cl == nil {
 		return -1, errors.New("Cannot add a nil classifier")
 	}

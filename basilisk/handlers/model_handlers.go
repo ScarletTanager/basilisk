@@ -7,7 +7,6 @@ import (
 
 	"github.com/ScarletTanager/basilisk/basilisk/model"
 	"github.com/ScarletTanager/basilisk/classifiers"
-	"github.com/ScarletTanager/basilisk/classifiers/knn"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
@@ -69,7 +68,7 @@ func CreateModelHandler(rm *model.RunningModels) echo.HandlerFunc {
 
 		log.Infof("Model configuration: %v", mc)
 
-		if classifier, err := knn.New(mc.K, mc.DistanceMethod); err != nil {
+		if classifier, err := classifiers.NewKnn(mc.K, mc.DistanceMethod); err != nil {
 			return c.JSON(http.StatusBadRequest, &model.ModelsError{Message: "Invalid model configuration", Error: err})
 		} else {
 			if id, err := rm.Add(classifier); err != nil {

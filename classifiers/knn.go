@@ -1,26 +1,22 @@
-package knn
+package classifiers
 
 import (
 	"errors"
 	"fmt"
 	"sort"
 
-	"github.com/ScarletTanager/basilisk/classifiers"
 	"github.com/ScarletTanager/sphinx/probability"
 )
 
 type KNearestNeighborClassifier struct {
-	RawData       *classifiers.DataSet
-	TrainingData  *classifiers.DataSet
-	TestingData   *classifiers.DataSet
-	Results       classifiers.TestResults
+	ClassifierImplementation
 	Configuration KNearestNeighborClassifierConfig
 }
 
 type KNearestNeighborClassifierConfig struct {
 	K                int
 	DistanceMethod   string
-	distanceFunction classifiers.DistanceFunction
+	distanceFunction DistanceFunction
 }
 
 func (knnc *KNearestNeighborClassifier) Config() interface{} {
@@ -35,21 +31,21 @@ func (knnc *KNearestNeighborClassifier) Type() string {
 	return ClassifierType_KNearestNeighbor
 }
 
-func New(k int, distanceMethod string) (*KNearestNeighborClassifier, error) {
+func NewKnn(k int, distanceMethod string) (*KNearestNeighborClassifier, error) {
 	if k <= 0 {
 		return nil, errors.New("Unable to create classifier, k must be greater than 0")
 	}
 
-	var distanceFunc classifiers.DistanceFunction
+	var distanceFunc DistanceFunction
 
 	switch distanceMethod {
-	case classifiers.DistanceMethod_Euclidean:
-		distanceFunc = classifiers.EuclideanDistance
-	case classifiers.DistanceMethod_Manhattan:
-		distanceFunc = classifiers.ManhattanDistance
+	case DistanceMethod_Euclidean:
+		distanceFunc = EuclideanDistance
+	case DistanceMethod_Manhattan:
+		distanceFunc = ManhattanDistance
 	default:
-		distanceMethod = classifiers.DistanceMethod_Euclidean
-		distanceFunc = classifiers.EuclideanDistance
+		distanceMethod = DistanceMethod_Euclidean
+		distanceFunc = EuclideanDistance
 	}
 
 	return &KNearestNeighborClassifier{
@@ -57,17 +53,17 @@ func New(k int, distanceMethod string) (*KNearestNeighborClassifier, error) {
 	}, nil
 }
 
-func (knnc *KNearestNeighborClassifier) Data() (*classifiers.DataSet, *classifiers.DataSet) {
+func (knnc *KNearestNeighborClassifier) Data() (*DataSet, *DataSet) {
 	return knnc.TrainingData, knnc.TestingData
 }
 
-func (knnc *KNearestNeighborClassifier) TrainFromCSV(data []byte, cfg *classifiers.DataSplitConfig) error {
+func (knnc *KNearestNeighborClassifier) TrainFromCSV(data []byte, cfg *DataSplitConfig) error {
 	return nil
 }
 
-func (knnc *KNearestNeighborClassifier) TrainFromCSVFile(path string, cfg *classifiers.DataSplitConfig) error {
+func (knnc *KNearestNeighborClassifier) TrainFromCSVFile(path string, cfg *DataSplitConfig) error {
 	var err error
-	knnc.RawData, err = classifiers.FromCSVFile(path)
+	knnc.RawData, err = FromCSVFile(path)
 	if err != nil {
 		return fmt.Errorf("Error training from CSV file %s: %w", path, err)
 	}
@@ -75,18 +71,18 @@ func (knnc *KNearestNeighborClassifier) TrainFromCSVFile(path string, cfg *class
 	return knnc.train(cfg)
 }
 
-func (knnc *KNearestNeighborClassifier) TrainFromDataset(ds *classifiers.DataSet, cfg *classifiers.DataSplitConfig) error {
+func (knnc *KNearestNeighborClassifier) TrainFromDataset(ds *DataSet, cfg *DataSplitConfig) error {
 	knnc.RawData = ds
 	return knnc.train(cfg)
 }
 
-func (knnc *KNearestNeighborClassifier) TrainFromJSON(data []byte, cfg *classifiers.DataSplitConfig) error {
+func (knnc *KNearestNeighborClassifier) TrainFromJSON(data []byte, cfg *DataSplitConfig) error {
 	return nil
 }
 
-func (knnc *KNearestNeighborClassifier) TrainFromJSONFile(path string, cfg *classifiers.DataSplitConfig) error {
+func (knnc *KNearestNeighborClassifier) TrainFromJSONFile(path string, cfg *DataSplitConfig) error {
 	var err error
-	knnc.RawData, err = classifiers.FromJSONFile(path)
+	knnc.RawData, err = FromJSONFile(path)
 	if err != nil {
 		return fmt.Errorf("Error training from JSON file: %w", err)
 	}
@@ -94,21 +90,21 @@ func (knnc *KNearestNeighborClassifier) TrainFromJSONFile(path string, cfg *clas
 	return knnc.train(cfg)
 }
 
-func (knnc *KNearestNeighborClassifier) train(cfg *classifiers.DataSplitConfig) error {
+func (knnc *KNearestNeighborClassifier) train(cfg *DataSplitConfig) error {
 	var err error
 	knnc.TrainingData, knnc.TestingData, err = knnc.RawData.Split(cfg)
 	return err
 }
 
-func (knnc *KNearestNeighborClassifier) Retrain(cfg *classifiers.DataSplitConfig) error {
+func (knnc *KNearestNeighborClassifier) Retrain(cfg *DataSplitConfig) error {
 	return knnc.train(cfg)
 }
 
-func (knnc *KNearestNeighborClassifier) Test() (classifiers.TestResults, error) {
+func (knnc *KNearestNeighborClassifier) Test() (TestResults, error) {
 	if knnc.TrainingData == nil || knnc.TestingData == nil {
 		return nil, errors.New("Untestable model")
 	}
-	results := make(classifiers.TestResults, len(knnc.TestingData.Records))
+	results := make(TestResults, len(knnc.TestingData.Records))
 	for i, testRecord := range knnc.TestingData.Records {
 		results[i] = classify(testRecord,
 			computeNeighbors(testRecord, knnc.TrainingData.Records, knnc.Configuration.distanceFunction),
@@ -126,8 +122,8 @@ type Neighbor struct {
 }
 
 // classify assumes that neighbors has been sorted by distance already
-func classify(orig classifiers.Record, neighbors []Neighbor, k, classCount int) classifiers.TestResult {
-	result := classifiers.TestResult{
+func classify(orig Record, neighbors []Neighbor, k, classCount int) TestResult {
+	result := TestResult{
 		Record: orig,
 	}
 
@@ -142,7 +138,7 @@ func classify(orig classifiers.Record, neighbors []Neighbor, k, classCount int) 
 	// Create the probability mass function
 	pmf := probability.MassDiscrete(votes)
 
-	predicted := classifiers.NO_PREDICTION
+	predicted := NO_PREDICTION
 	predictedProbability := 0.0
 
 	// Determine the class
@@ -161,7 +157,7 @@ func classify(orig classifiers.Record, neighbors []Neighbor, k, classCount int) 
 }
 
 // Take an individual record, order the records from ds by proximity, return the ordered list
-func computeNeighbors(orig classifiers.Record, comps []classifiers.Record, distanceFunction classifiers.DistanceFunction) []Neighbor {
+func computeNeighbors(orig Record, comps []Record, distanceFunction DistanceFunction) []Neighbor {
 	neighbors := make([]Neighbor, len(comps))
 	for i, r := range comps {
 		neighbors[i] = Neighbor{
