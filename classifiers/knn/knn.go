@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/ScarletTanager/basilisk/classifiers"
-	"github.com/ScarletTanager/basilisk/stats/probability"
+	"github.com/ScarletTanager/sphinx/probability"
 )
 
 type KNearestNeighborClassifier struct {

@@ -1,13 +1,16 @@
 module github.com/ScarletTanager/basilisk
 
-go 1.21.0
+go 1.21.7
+
+toolchain go1.22.2
 
 require (
+	github.com/ScarletTanager/sphinx v0.0.0-20240415160527-af4edfc1fbfb
 	github.com/ScarletTanager/wyvern v0.0.0-20230901002917-ddd3dba3bec5
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/labstack/gommon v0.4.0
-	github.com/onsi/ginkgo/v2 v2.13.2
-	github.com/onsi/gomega v1.29.0
+	github.com/onsi/ginkgo/v2 v2.17.1
+	github.com/onsi/gomega v1.32.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 )
 
@@ -20,10 +23,10 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/crypto v0.16.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.16.1 // indirect
+	golang.org/x/tools v0.19.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
