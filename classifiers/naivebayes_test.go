@@ -449,7 +449,7 @@ var _ = FDescribe("Naivebayes", func() {
 			Expect(nbc.VectorConditionedClassProbabilities).To(BeNil())
 		})
 
-		FDescribe("TrainFromDataset", func() {
+		Describe("TrainFromDataset", func() {
 			var (
 				dataset *classifiers.DataSet
 				err     error
