@@ -1,5 +1,7 @@
 github.com/ScarletTanager/sphinx v0.0.0-20240415160527-af4edfc1fbfb h1:ntn6Pts/HF0VixH148m9asuTd+UmdVGMu1PWT3embP8=
 github.com/ScarletTanager/sphinx v0.0.0-20240415160527-af4edfc1fbfb/go.mod h1:3MozjatLgYT28CfRY+JAXmvLJ45yrvo03rYex86gxiE=
+github.com/ScarletTanager/sphinx v0.0.0-20240421172354-903af30096e3 h1:8VZ6hK2laL0KDoAluxsHmtPjnjCL/5TKyq7miChxqno=
+github.com/ScarletTanager/sphinx v0.0.0-20240421172354-903af30096e3/go.mod h1:3MozjatLgYT28CfRY+JAXmvLJ45yrvo03rYex86gxiE=
 github.com/ScarletTanager/wyvern v0.0.0-20230901002917-ddd3dba3bec5 h1:GIXUoTJo6Hd2Wp7RP7wrPn63YSQNNI5J/gx24miAlX0=
 github.com/ScarletTanager/wyvern v0.0.0-20230901002917-ddd3dba3bec5/go.mod h1:u7sKMFfFQ1IfqRVOJLJBOl2z6TCxHCJkr2VdDTs5gxw=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -41,6 +41,47 @@ var _ = FDescribe("Naivebayes", func() {
 		})
 	})
 
+	Describe("ComputeClassPriors", func() {
+		var (
+			classPriors []float64
+			classNames  []string
+			records     []classifiers.Record
+		)
+
+		BeforeEach(func() {
+			classNames = []string{"foo", "bar"}
+			records = []classifiers.Record{
+				{
+					Class:           0,
+					AttributeValues: wyvern.Vector[float64]{1.0, 1.0},
+				},
+				{
+					Class:           0,
+					AttributeValues: wyvern.Vector[float64]{5.0, 5.0},
+				},
+				{
+					Class:           1,
+					AttributeValues: wyvern.Vector[float64]{13.0, 1.0},
+				},
+				{
+					Class:           1,
+					AttributeValues: wyvern.Vector[float64]{20.0, 7.5},
+				},
+				{
+					Class:           0,
+					AttributeValues: wyvern.Vector[float64]{9.8, 10.0},
+				},
+			}
+		})
+
+		It("Computes the correct class priors", func() {
+			classPriors = classifiers.ComputeClassPriors(classNames, records)
+			Expect(classPriors).To(HaveLen(len(classNames)))
+			Expect(classPriors[0]).To(Equal(0.6))
+			Expect(classPriors[1]).To(Equal(0.4))
+		})
+	})
+
 	Describe("DiscretizeAttributes", func() {
 		var (
 			attributeNames []string
@@ -392,6 +433,42 @@ var _ = FDescribe("Naivebayes", func() {
 					}
 				}
 			}
+		})
+	})
+
+	Describe("NaiveBayesClassifier", func() {
+		var (
+			nbc *classifiers.NaiveBayesClassifier
+		)
+
+		BeforeEach(func() {
+			nbc = classifiers.NewNaiveBayes()
+		})
+
+		JustBeforeEach(func() {
+			Expect(nbc.VectorConditionedClassProbabilities).To(BeNil())
+		})
+
+		FDescribe("TrainFromDataset", func() {
+			var (
+				dataset *classifiers.DataSet
+				err     error
+			)
+
+			BeforeEach(func() {
+				dataset, err = classifiers.FromJSONFile("../datasets/widgets.json")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			When("The DataSet is valid", func() {
+				It("Trains the model with vector-conditioned class posteriors", func() {
+					nbc.TrainFromDataset(dataset, &classifiers.DataSplitConfig{
+						TrainingShare: 0.80,
+						Method:        classifiers.SplitSequential,
+					})
+					Expect(nbc.VectorConditionedClassProbabilities).NotTo(BeNil())
+				})
+			})
 		})
 	})
 })

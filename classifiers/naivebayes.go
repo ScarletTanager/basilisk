@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 
 	"github.com/ScarletTanager/sphinx/probability"
 )
@@ -60,7 +61,7 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 	// Calculate the prior probability of each class
 	// This should probably be a method on the DataSet...?
 
-	classPriors := computeClassPriors(nbc.RawData.ClassNames, nbc.TrainingData.Records)
+	classPriors := ComputeClassPriors(nbc.RawData.ClassNames, nbc.TrainingData.Records)
 
 	// Discretize the attributes - we will use the output from this step
 	// to calculate the conditional probability P(X==x|C==c), where x is the vector of attributes,
@@ -85,6 +86,8 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 
 	vectorCount := len(ccps[0])
 
+	fmt.Fprintf(os.Stderr, "Vector count: %d\n", vectorCount)
+
 	nbc.VectorConditionedClassProbabilities = make([][]float64, vectorCount)
 	for v, _ := range nbc.VectorConditionedClassProbabilities {
 		nbc.VectorConditionedClassProbabilities[v] = make([]float64, len(nbc.RawData.ClassNames))
@@ -95,19 +98,24 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 		for classIdx, _ := range nbc.RawData.ClassNames {
 			vectorTotalProbabilities[i] += ccps[classIdx][i] * classPriors[classIdx]
 		}
+
+		fmt.Fprintf(os.Stderr, "Vector: %d\tTotal probability: %f\n", i, vectorTotalProbabilities[i])
 	}
 
 	for classIdx, _ := range ccps {
 		for vectorIdx, pVal := range ccps[classIdx] {
 			nbc.VectorConditionedClassProbabilities[vectorIdx][classIdx], _ = probability.Bayes(classPriors[classIdx],
 				pVal, vectorTotalProbabilities[vectorIdx])
+			fmt.Fprintf(os.Stderr, "Class: %d\tClass Prior: %.4f\tVector: %d\tVector Posterior: %.4f\tVector total: %.4f\tClass Posterior: %.4f\n",
+				classIdx, classPriors[classIdx], vectorIdx, ccps[classIdx][vectorIdx], vectorTotalProbabilities[vectorIdx], nbc.VectorConditionedClassProbabilities[vectorIdx][classIdx])
+			// fmt.Fprintf(os.Stderr, "Vector: %d\tClass: %d\tVector-conditioned Class posterior: %f\n", vectorIdx, classIdx, nbc.VectorConditionedClassProbabilities[vectorIdx][classIdx])
 		}
 	}
 
 	return nil
 }
 
-func computeClassPriors(classNames []string, records []Record) []float64 {
+func ComputeClassPriors(classNames []string, records []Record) []float64 {
 	// Use the raw data in case the split left some classes out of the training dataset
 	classPriors := make([]float64, len(classNames))
 

@@ -5,7 +5,7 @@ go 1.21.7
 toolchain go1.22.2
 
 require (
-	github.com/ScarletTanager/sphinx v0.0.0-20240415160527-af4edfc1fbfb
+	github.com/ScarletTanager/sphinx v0.0.0-20240421172354-903af30096e3
 	github.com/ScarletTanager/wyvern v0.0.0-20230901002917-ddd3dba3bec5
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/labstack/gommon v0.4.0
