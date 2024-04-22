@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"strings"
 
 	"github.com/ScarletTanager/sphinx/probability"
+	"github.com/ScarletTanager/wyvern"
 )
 
 //
@@ -83,7 +86,7 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 
 	// Aaaaand...apply Bayes to get P(C==c|X==x)
 
-	vectorCount := len(ccps[0])
+	vectorCount := len(ccps.Probabilities[0])
 
 	nbc.VectorConditionedClassProbabilities = make([][]float64, vectorCount)
 	for v, _ := range nbc.VectorConditionedClassProbabilities {
@@ -93,15 +96,27 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 	vectorTotalProbabilities := make([]float64, vectorCount)
 	for i, _ := range vectorTotalProbabilities {
 		for classIdx, _ := range nbc.RawData.ClassNames {
-			vectorTotalProbabilities[i] += ccps[classIdx][i] * classPriors[classIdx]
+			vectorTotalProbabilities[i] += ccps.Probabilities[classIdx][i] * classPriors[classIdx]
 		}
 	}
 
-	for classIdx, _ := range ccps {
-		for vectorIdx, pVal := range ccps[classIdx] {
+	for classIdx, _ := range ccps.Probabilities {
+		for vectorIdx, pVal := range ccps.Probabilities[classIdx] {
 			nbc.VectorConditionedClassProbabilities[vectorIdx][classIdx], _ = probability.Bayes(classPriors[classIdx],
 				pVal, vectorTotalProbabilities[vectorIdx])
 		}
+	}
+
+	for vectorIdx, vectorProbs := range nbc.VectorConditionedClassProbabilities {
+		b := strings.Builder{}
+		b.WriteString(fmt.Sprintf("Vector %d\t", vectorIdx))
+
+		for classIdx, vccp := range vectorProbs {
+			b.WriteString(fmt.Sprintf("Class: %d Probability: %f\t", classIdx, vccp))
+		}
+
+		fmt.Fprintln(os.Stderr, b.String())
+		fmt.Fprintf(os.Stderr, "Attribute intervals start at: %v\n", ccps.AttributeVectors[vectorIdx])
 	}
 
 	return nil
@@ -209,7 +224,10 @@ func GenerateClassAttributePosteriors(classNames, attributeNames []string, inter
 	return caps
 }
 
-type ClassConditionedPosteriors [][]float64
+type ClassConditionedPosteriors struct {
+	Probabilities    [][]float64
+	AttributeVectors []wyvern.Vector[float64]
+}
 
 func GenerateClassConditionedPosteriors(classNames, attributeNames []string,
 	intervals []probability.Intervals, caps ClassAttributePosteriors) ClassConditionedPosteriors {
@@ -217,11 +235,15 @@ func GenerateClassConditionedPosteriors(classNames, attributeNames []string,
 	// then the base of the exponential must be the interval count
 	vectorCount := int(math.Pow10(len(attributeNames)))
 
-	ccps := make(ClassConditionedPosteriors, len(classNames))
-	for classIdx, _ := range ccps {
-		ccps[classIdx] = make([]float64, vectorCount)
-		for i, _ := range ccps[classIdx] {
-			ccps[classIdx][i] = 1.0
+	ccps := ClassConditionedPosteriors{
+		Probabilities:    make([][]float64, len(classNames)),
+		AttributeVectors: make([]wyvern.Vector[float64], vectorCount),
+	}
+
+	for classIdx, _ := range ccps.Probabilities {
+		ccps.Probabilities[classIdx] = make([]float64, vectorCount)
+		for i, _ := range ccps.Probabilities[classIdx] {
+			ccps.Probabilities[classIdx][i] = 1.0
 		}
 
 		for attrIdx, _ := range attributeNames {
@@ -230,10 +252,17 @@ func GenerateClassConditionedPosteriors(classNames, attributeNames []string,
 			for vectorIdx < vectorCount {
 				// If we ever allow the interval count to be configurable, this will need to change
 				for k, _ := range intervals[attrIdx] {
+					// Store the attribute values in vectors - we're doing it twice right now, but who cares (we can optimize later)
+					// Really, we should do this a lot earlier (not in this function)
+					if ccps.AttributeVectors[vectorIdx] == nil {
+						ccps.AttributeVectors[vectorIdx] = make(wyvern.Vector[float64], len(attributeNames))
+					}
+
+					ccps.AttributeVectors[vectorIdx][attrIdx] = intervals[attrIdx][k].Lower
 					pVal, _ := caps.ClassAttributePosterior(classIdx, attrIdx, k)
 					// Multiply the probability of every vector in the chunk by the interval posterior
 					for chunkSlotIdx := 0; chunkSlotIdx < chunkSize; chunkSlotIdx++ {
-						ccps[classIdx][vectorIdx] = ccps[classIdx][vectorIdx] * pVal
+						ccps.Probabilities[classIdx][vectorIdx] = ccps.Probabilities[classIdx][vectorIdx] * pVal
 						vectorIdx++
 					}
 				}

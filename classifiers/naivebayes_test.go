@@ -418,9 +418,9 @@ var _ = FDescribe("Naivebayes", func() {
 				intervals,
 				caps)
 
-			Expect(ccps).To(HaveLen(2))
-			Expect(ccps[0]).To(HaveLen(100))
-			Expect(ccps[1]).To(HaveLen(100))
+			Expect(ccps.Probabilities).To(HaveLen(2))
+			Expect(ccps.Probabilities[0]).To(HaveLen(100))
+			Expect(ccps.Probabilities[1]).To(HaveLen(100))
 
 			// With attributes indexed 0 and 1, each with 10 intervals, vector index 15
 			// has probability P(A1==1)P(A2==5).
@@ -429,14 +429,14 @@ var _ = FDescribe("Naivebayes", func() {
 				for tens := 0; tens < 10; tens++ {
 					for ones := 0; ones < 10; ones++ {
 						expected := caps[classIdx][0][tens] * caps[classIdx][1][ones]
-						Expect(ccps[classIdx][(tens*10)+ones]).To(Equal(expected))
+						Expect(ccps.Probabilities[classIdx][(tens*10)+ones]).To(Equal(expected))
 					}
 				}
 			}
 		})
 	})
 
-	Describe("NaiveBayesClassifier", func() {
+	FDescribe("NaiveBayesClassifier", func() {
 		var (
 			nbc *classifiers.NaiveBayesClassifier
 		)
@@ -456,16 +456,13 @@ var _ = FDescribe("Naivebayes", func() {
 			)
 
 			BeforeEach(func() {
-				dataset, err = classifiers.FromJSONFile("../datasets/widgets.json")
+				dataset, err = classifiers.FromJSONFile("../datasets/widgets2.json")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			When("The DataSet is valid", func() {
 				It("Trains the model with vector-conditioned class posteriors", func() {
-					nbc.TrainFromDataset(dataset, &classifiers.DataSplitConfig{
-						TrainingShare: 0.80,
-						Method:        classifiers.SplitSequential,
-					})
+					nbc.TrainFromDataset(dataset, &classifiers.DataSplitConfig{})
 					Expect(nbc.VectorConditionedClassProbabilities).NotTo(BeNil())
 				})
 			})
