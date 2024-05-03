@@ -18,7 +18,20 @@ import (
 type NaiveBayesClassifier struct {
 	ClassifierImplementation
 	VectorConditionedClassProbabilities [][]float64
+	// Model is a list of BayesAttributes, indexed by the attribute vector
+	Model []BayesAttributes
 }
+
+// BayesAttributes contains the details for a specific vector of attributes within a Bayes model.
+// This includes:
+//   - the vector of attribute values (discretized or not)
+//   - the vector-conditioned probabilities for each class
+type BayesAttributes struct {
+	Values             wyvern.Vector[float64]
+	ClassProbabilities wyvern.Vector[float64]
+}
+
+// func attributeVectorIndex(indices)
 
 const (
 	ClassifierType_NaiveBayes string = "Naive Bayes Classifier"
@@ -65,11 +78,24 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 
 	classPriors := ComputeClassPriors(nbc.RawData.ClassNames, nbc.TrainingData.Records)
 
+	// DEBUG
+	for classIdx, prior := range classPriors {
+		fmt.Fprintf(os.Stderr, "Class: %d\tPrior: %f\n", classIdx, prior)
+	}
+
 	// Discretize the attributes - we will use the output from this step
 	// to calculate the conditional probability P(X==x|C==c), where x is the vector of attributes,
 	// and c is the class.
 
 	attributeIntervals := DiscretizeAttributes(nbc.RawData.AttributeNames, nbc.TrainingData.Records)
+
+	// DEBUG
+	for attrIndx, intervals := range attributeIntervals {
+		fmt.Fprintf(os.Stderr, "Attribute: %s\n", nbc.RawData.AttributeNames[attrIndx])
+		for intervalIdx, interval := range intervals {
+			fmt.Fprintf(os.Stderr, "\tInterval: %d\tLower Limit: %f\tUpper Limit: %f\n", intervalIdx, interval.Lower, interval.Lower+interval.Size)
+		}
+	}
 
 	// Now we need to calcuate P(An==a|C==c) (A1...An are the individual attribute variables)
 
@@ -78,6 +104,19 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 
 	caps := GenerateClassAttributePosteriors(nbc.RawData.ClassNames, nbc.RawData.AttributeNames,
 		attributeIntervals, nbc.TrainingData.Records)
+
+	// DEBUG
+	fmt.Fprintf(os.Stderr, "========== Class-conditioned Attribute Posteriors ===========\n")
+	for classIdx := range caps {
+		fmt.Fprintf(os.Stderr, "Class: %s\n", nbc.RawData.ClassNames[classIdx])
+		for attrIdx := range caps[classIdx] {
+			fmt.Fprintf(os.Stderr, "\tAttribute: %s\n", nbc.RawData.AttributeNames[attrIdx])
+			for intervalIdx := range caps[classIdx][attrIdx] {
+				fmt.Fprintf(os.Stderr, "\t\tInterval lower limit: %f\tupper limit: %f\tprobability: %f\n", attributeIntervals[attrIdx][intervalIdx].Lower,
+					attributeIntervals[attrIdx][intervalIdx].Lower+attributeIntervals[attrIdx][intervalIdx].Size, caps[classIdx][attrIdx][intervalIdx])
+			}
+		}
+	}
 
 	// Next calculate P(X==x|C==c)
 
@@ -122,25 +161,8 @@ func (nbc *NaiveBayesClassifier) train(cfg *DataSplitConfig) error {
 	return nil
 }
 
-func ComputeClassPriors(classNames []string, records []Record) []float64 {
-	// Use the raw data in case the split left some classes out of the training dataset
-	classPriors := make([]float64, len(classNames))
-
-	// Stick the classes into a slice of ints
-	trainingClasses := make([]int, len(records))
-	for i, rec := range records {
-		trainingClasses[i] = rec.Class
-	}
-
-	// Compute the class priors and cache them
-	classPriorPMF := probability.MassDiscrete(trainingClasses)
-	for i, _ := range classNames {
-		classPriors[i] = classPriorPMF(i)
-	}
-
-	return classPriors
-}
-
+// DiscretizeAttributes computes the discrete intervals for the attribute values, given a
+// specific set of records.
 func DiscretizeAttributes(attributeNames []string, records []Record) []probability.Intervals {
 	attributeIntervals := make([]probability.Intervals, len(attributeNames))
 
@@ -157,6 +179,26 @@ func DiscretizeAttributes(attributeNames []string, records []Record) []probabili
 	}
 
 	return attributeIntervals
+}
+
+// ComputeClassPriors computes the prior probability of each class, given a specific set of
+// records
+func ComputeClassPriors(classNames []string, records []Record) []float64 {
+	classPriors := make([]float64, len(classNames))
+
+	// Stick the classes into a slice of ints
+	trainingClasses := make([]int, len(records))
+	for i, rec := range records {
+		trainingClasses[i] = rec.Class
+	}
+
+	// Compute the class priors and cache them
+	classPriorPMF := probability.MassDiscrete(trainingClasses)
+	for i, _ := range classNames {
+		classPriors[i] = classPriorPMF(i)
+	}
+
+	return classPriors
 }
 
 // ClassAttributePosteriors is just a convenience type alias to make retrieving the conditional

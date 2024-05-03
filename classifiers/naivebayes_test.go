@@ -436,7 +436,7 @@ var _ = FDescribe("Naivebayes", func() {
 		})
 	})
 
-	FDescribe("NaiveBayesClassifier", func() {
+	Describe("NaiveBayesClassifier", func() {
 		var (
 			nbc *classifiers.NaiveBayesClassifier
 		)
@@ -456,13 +456,16 @@ var _ = FDescribe("Naivebayes", func() {
 			)
 
 			BeforeEach(func() {
-				dataset, err = classifiers.FromJSONFile("../datasets/widgets2.json")
+				dataset, err = classifiers.FromJSONFile("../datasets/widgets3.json")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			When("The DataSet is valid", func() {
-				It("Trains the model with vector-conditioned class posteriors", func() {
-					nbc.TrainFromDataset(dataset, &classifiers.DataSplitConfig{})
+				FIt("Trains the model with vector-conditioned class posteriors", func() {
+					nbc.TrainFromDataset(dataset, &classifiers.DataSplitConfig{
+						Method:        classifiers.SplitSequential,
+						TrainingShare: .8,
+					})
 					Expect(nbc.VectorConditionedClassProbabilities).NotTo(BeNil())
 				})
 			})
